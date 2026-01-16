@@ -12,13 +12,25 @@
   <style>
     body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; }
     header { padding: 12px 16px; border-bottom: 1px solid #ddd; display: flex; gap: 12px; align-items: center; }
-    #wrap { display: grid; grid-template-columns: 320px 1fr; height: calc(100vh - 50px); }
+    header .spacer { flex: 1; }
+    #wrap { display: grid; grid-template-columns: 340px 1fr; height: calc(100vh - 50px); }
     #left { border-right: 1px solid #ddd; padding: 12px; overflow: auto; }
     #timeline { height: 100%; }
     .row { margin-bottom: 10px; }
     label { display:block; font-size: 12px; color: #444; margin-bottom: 4px; }
-    input, select { width: 100%; padding: 8px; box-sizing: border-box; }
+    input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; }
+    button { padding: 8px 10px; }
     .doneItem { opacity: 0.35; }
+    .muted { color: #666; font-size: 12px; }
+
+    dialog { width: min(980px, 94vw); border: 1px solid #ccc; border-radius: 10px; padding: 0; }
+    dialog header { border-bottom: 1px solid #eee; }
+    dialog .content { padding: 12px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    dialog .footer { padding: 12px 16px; border-top: 1px solid #eee; display:flex; justify-content:flex-end; gap: 8px; }
+    .span2 { grid-column: span 2; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { border-bottom: 1px solid #eee; padding: 6px 4px; text-align: left; }
   </style>
 </head>
 
@@ -26,6 +38,9 @@
 <header>
   <strong>盤面</strong>
   <button id="btnReload">再読込</button>
+  <button id="btnNew">新規案件</button>
+  <div class="spacer"></div>
+  <span class="muted" id="statusText"></span>
 </header>
 
 <div id="wrap">
@@ -38,6 +53,7 @@
       <label>表示終了</label>
       <input id="endDate" type="date" />
     </div>
+
     <div class="row">
       <label>ステータス</label>
       <select id="statusFilter">
@@ -46,22 +62,83 @@
         <option value="done">完了</option>
       </select>
     </div>
+
     <div class="row">
       <label>ルート検索（部分一致）</label>
-      <input id="routeFilter" placeholder="例：青海→大井" />
+      <input id="routeFilter" placeholder="例：青海A-1→南本牧" />
+    </div>
+
+    <div class="row">
+      <label>依頼主検索（部分一致）</label>
+      <input id="customerFilter" placeholder="例：ICT東京" />
     </div>
   </div>
 
   <div id="timeline"></div>
 </div>
 
+<dialog id="dlg">
+  <header>
+    <div style="padding:12px 16px; display:flex; align-items:center; gap:12px;">
+      <strong id="dlgTitle">案件</strong>
+      <span class="muted" id="dlgSub"></span>
+      <div class="spacer"></div>
+      <button id="btnClose">閉じる</button>
+    </div>
+  </header>
+
+  <div class="content">
+    <div class="row"><label>依頼主</label><input id="f_customer"></div>
+    <div class="row"><label>受注番号</label><input id="f_order_no"></div>
+
+    <div class="row"><label>本船</label><input id="f_vessel"></div>
+    <div class="row"><label>BL/BK</label><input id="f_bl_bk"></div>
+
+    <div class="row"><label>搬出ヤード</label><input id="f_from_yard"></div>
+    <div class="row"><label>搬入ヤード</label><input id="f_to_yard"></div>
+
+    <div class="row"><label>ルート（空なら自動生成）</label><input id="f_route" placeholder="例：青海A-1→南本牧"></div>
+    <div class="row"><label>サイズ（例：20/40）</label><input id="f_size"></div>
+
+    <div class="row"><label>種類（実入り/空 等）</label><input id="f_cargo_type"></div>
+    <div class="row"><label>総本数</label><input id="f_qty_total" type="number" min="0"></div>
+
+    <div class="row"><label>開始日（表示用）</label><input id="f_start_date" type="date"></div>
+    <div class="row"><label>期限日</label><input id="f_due_date" type="date"></div>
+
+    <div class="row span2"><label>メモ</label><textarea id="f_memo" rows="2"></textarea></div>
+
+    <div class="row span2" style="border-top:1px solid #eee; padding-top:12px;">
+      <strong>当日完了入力</strong>
+      <div class="muted">「当日完了本数」を追加すると、残本数が自動で更新されます。</div>
+    </div>
+
+    <div class="row"><label>作業日</label><input id="f_work_date" type="date"></div>
+    <div class="row"><label>当日完了本数</label><input id="f_qty_done_today" type="number" min="0"></div>
+
+    <div class="row span2">
+      <label>（参考）進捗</label>
+      <div class="muted" id="progressText">-</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <button id="btnSave">保存</button>
+    <button id="btnAddDone">当日完了を追加</button>
+  </div>
+</dialog>
+
 <script>
-  // ====== ここだけ差し替え ======
+  /************ 設定（ここだけ差し替え） ************/
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbx5HV_menEoAEihgvJDfAkwePogYodNlNY8Okgxd2rbvBvmBID18dm_2N8fqXhknOI43A/exec';
-  const TOKEN  = 'OOIPOSITIONFEEDER';
+  const TOKEN  = 'pf_2026_xxx';
 
+  /************ 状態 ************/
   let timeline;
+  let allOrders = [];
+  let currentOrder = null;
 
+  /************ Utils ************/
   function toDate(d) {
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth()+1).padStart(2,'0');
@@ -69,6 +146,54 @@
     return `${yyyy}-${mm}-${dd}`;
   }
 
+  function addDays(ymd, days) {
+    const d = new Date(ymd + 'T00:00:00');
+    d.setDate(d.getDate() + days);
+    return toDate(d);
+  }
+
+  function jsonp(url) {
+    return new Promise((resolve, reject) => {
+      const cb = 'cb_' + Math.random().toString(36).slice(2);
+      url.searchParams.set('callback', cb);
+
+      const script = document.createElement('script');
+      script.src = url.toString();
+
+      window[cb] = (data) => {
+        cleanup();
+        resolve(data);
+      };
+
+      script.onerror = () => {
+        cleanup();
+        reject(new Error('jsonp_load_failed'));
+      };
+
+      function cleanup() {
+        try { delete window[cb]; } catch (_) {}
+        script.remove();
+      }
+
+      document.head.appendChild(script);
+    });
+  }
+
+  async function api(action, payloadObj) {
+    const url = new URL(GAS_URL);
+    url.searchParams.set('token', TOKEN);
+    url.searchParams.set('action', action);
+
+    if (payloadObj) {
+      // ここは "生JSON文字列" を渡す（URLSearchParams側でエンコードされる）
+      url.searchParams.set('payload', JSON.stringify(payloadObj));
+    }
+    const resp = await jsonp(url);
+    if (!resp.ok) throw new Error(resp.error || 'api_error');
+    return resp.data;
+  }
+
+  /************ Data load ************/
   function initDefaults() {
     const today = new Date();
     const start = new Date(today); start.setDate(today.getDate()-7);
@@ -76,9 +201,10 @@
 
     document.getElementById('startDate').value = toDate(start);
     document.getElementById('endDate').value   = toDate(end);
+    document.getElementById('f_work_date').value = toDate(today);
   }
 
-  async function listOrders() {
+  async function loadOrders() {
     const start = document.getElementById('startDate').value;
     const end   = document.getElementById('endDate').value;
 
@@ -88,32 +214,36 @@
     url.searchParams.set('start_date', start);
     url.searchParams.set('end_date', end);
 
-    const res = await fetch(url.toString());
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error || 'listOrders_failed');
-    return json.data || [];
+    const resp = await jsonp(url);
+    if (!resp.ok) throw new Error(resp.error || 'listOrders_failed');
+    return resp.data || [];
   }
 
+  /************ Timeline ************/
   function buildTimeline(orders) {
     const statusFilter = document.getElementById('statusFilter').value;
     const routeFilter  = document.getElementById('routeFilter').value.trim();
+    const customerFilter = document.getElementById('customerFilter').value.trim();
 
     const filtered = orders.filter(o => {
       if (statusFilter && String(o.status) !== statusFilter) return false;
       if (routeFilter && !String(o.route || '').includes(routeFilter)) return false;
+      if (customerFilter && !String(o.customer || '').includes(customerFilter)) return false;
       return true;
     });
 
-    // groups: route単位
+    // groups by route
     const routeSet = new Map();
     filtered.forEach(o => routeSet.set(o.route || '(未設定)', true));
     const groupArr = Array.from(routeSet.keys()).sort().map(r => ({ id: r, content: r }));
-
     const groups = new vis.DataSet(groupArr);
 
     const itemArr = filtered.map(o => {
       const start = o.start_date ? String(o.start_date) : String(o.due_date || '');
-      const end   = o.due_date ? String(o.due_date) : start;
+      const due = o.due_date ? String(o.due_date) : start;
+
+      // vis-timeline end is exclusive; make it inclusive visually (+1 day)
+      const endExclusive = due ? addDays(due, 1) : start;
 
       const done = Number(o.qty_done || 0);
       const total = Number(o.qty_total || 0);
@@ -124,7 +254,8 @@
       return {
         id: o.order_id,
         group: o.route || '(未設定)',
-        start, end,
+        start,
+        end: endExclusive,
         content,
         className: (String(o.status) === 'done') ? 'doneItem' : ''
       };
@@ -133,25 +264,157 @@
     const items = new vis.DataSet(itemArr);
 
     const container = document.getElementById('timeline');
-    const options = { stack: true };
+    const options = {
+      stack: true,
+      zoomMin: 1000 * 60 * 60 * 24 * 7,
+      zoomMax: 1000 * 60 * 60 * 24 * 180
+    };
 
     if (timeline) timeline.destroy();
     timeline = new vis.Timeline(container, items, groups, options);
+
+    timeline.on('select', props => {
+      if (!props.items || props.items.length === 0) return;
+      const id = props.items[0];
+      const o = filtered.find(x => String(x.order_id) === String(id));
+      if (o) openDialog(o);
+    });
+
+    document.getElementById('statusText').textContent =
+      `表示 ${filtered.length}件 / 読込 ${orders.length}件`;
   }
 
   async function reload() {
-    const orders = await listOrders();
-    buildTimeline(orders);
+    document.getElementById('statusText').textContent = '読込中...';
+    allOrders = await loadOrders();
+    buildTimeline(allOrders);
   }
 
-  document.getElementById('btnReload').addEventListener('click', () => reload().catch(alert));
-  document.getElementById('statusFilter').addEventListener('change', () => reload().catch(alert));
-  document.getElementById('routeFilter').addEventListener('input', () => reload().catch(alert));
+  /************ Dialog ************/
+  function openDialog(order) {
+    currentOrder = order ? { ...order } : {
+      order_id: '',
+      customer: '',
+      order_no: '',
+      vessel: '',
+      bl_bk: '',
+      from_yard: '',
+      to_yard: '',
+      route: '',
+      size: '',
+      cargo_type: '',
+      qty_total: 0,
+      start_date: '',
+      due_date: '',
+      memo: '',
+      status: 'open'
+    };
 
+    document.getElementById('dlgTitle').textContent = currentOrder.order_id ? '案件（編集）' : '案件（新規）';
+    document.getElementById('dlgSub').textContent = currentOrder.order_id ? `order_id: ${currentOrder.order_id}` : '';
+
+    const set = (id, v) => document.getElementById(id).value = (v ?? '');
+    set('f_customer', currentOrder.customer);
+    set('f_order_no', currentOrder.order_no);
+    set('f_vessel', currentOrder.vessel);
+    set('f_bl_bk', currentOrder.bl_bk);
+    set('f_from_yard', currentOrder.from_yard);
+    set('f_to_yard', currentOrder.to_yard);
+    set('f_route', currentOrder.route);
+    set('f_size', currentOrder.size);
+    set('f_cargo_type', currentOrder.cargo_type);
+    set('f_qty_total', currentOrder.qty_total);
+    set('f_start_date', currentOrder.start_date);
+    set('f_due_date', currentOrder.due_date);
+    set('f_memo', currentOrder.memo);
+
+    // progress
+    const done = Number(currentOrder.qty_done || 0);
+    const total = Number(currentOrder.qty_total || 0);
+    const remaining = Number(currentOrder.qty_remaining || Math.max(total - done, 0));
+    document.getElementById('progressText').textContent = `完了 ${done} / ${total}（残 ${remaining}）`;
+
+    // done input
+    document.getElementById('f_qty_done_today').value = '';
+
+    document.getElementById('dlg').showModal();
+  }
+
+  function readDialogOrder() {
+    const get = id => document.getElementById(id).value;
+
+    currentOrder.customer   = get('f_customer');
+    currentOrder.order_no   = get('f_order_no');
+    currentOrder.vessel     = get('f_vessel');
+    currentOrder.bl_bk      = get('f_bl_bk');
+    currentOrder.from_yard  = get('f_from_yard');
+    currentOrder.to_yard    = get('f_to_yard');
+    currentOrder.route      = get('f_route'); // 空ならGAS側で自動生成
+    currentOrder.size       = get('f_size');
+    currentOrder.cargo_type = get('f_cargo_type');
+    currentOrder.qty_total  = Number(get('f_qty_total') || 0);
+    currentOrder.start_date = get('f_start_date');
+    currentOrder.due_date   = get('f_due_date');
+    currentOrder.memo       = get('f_memo');
+
+    return currentOrder;
+  }
+
+  /************ Events ************/
+  document.getElementById('btnReload').addEventListener('click', () => reload().catch(alert));
+  document.getElementById('btnNew').addEventListener('click', () => openDialog(null));
+  document.getElementById('btnClose').addEventListener('click', () => document.getElementById('dlg').close());
+
+  document.getElementById('statusFilter').addEventListener('change', () => buildTimeline(allOrders));
+  document.getElementById('routeFilter').addEventListener('input', () => buildTimeline(allOrders));
+  document.getElementById('customerFilter').addEventListener('input', () => buildTimeline(allOrders));
+
+  document.getElementById('btnSave').addEventListener('click', async () => {
+    try {
+      const o = readDialogOrder();
+
+      // minimal validation
+      if (!o.customer) throw new Error('依頼主が未入力です');
+      if (!o.from_yard || !o.to_yard) throw new Error('搬出/搬入ヤードが未入力です');
+      if (!o.due_date) throw new Error('期限日が未入力です');
+
+      const saved = await api('upsertOrder', o);
+      currentOrder = saved;
+
+      document.getElementById('dlg').close();
+      await reload();
+      alert('保存しました。');
+    } catch (e) {
+      alert(e.message);
+    }
+  });
+
+  document.getElementById('btnAddDone').addEventListener('click', async () => {
+    try {
+      if (!currentOrder || !currentOrder.order_id) {
+        alert('先に案件を保存してください（order_idが必要です）。');
+        return;
+      }
+      const work_date = document.getElementById('f_work_date').value;
+      const qty_done_today = Number(document.getElementById('f_qty_done_today').value || 0);
+      if (!work_date) throw new Error('作業日が未入力です');
+      if (qty_done_today <= 0) throw new Error('当日完了本数は1以上を入力してください');
+
+      await api('addCompletion', { order_id: currentOrder.order_id, work_date, qty_done_today });
+
+      document.getElementById('dlg').close();
+      await reload();
+      alert('当日完了を追加しました。');
+    } catch (e) {
+      alert(e.message);
+    }
+  });
+
+  /************ Boot ************/
   initDefaults();
   reload().catch(err => {
     console.error(err);
-    alert('ロード失敗。GAS URL / TOKEN / デプロイ設定を確認してください。\n' + err.message);
+    alert('初期ロードに失敗しました。GAS_URL / TOKEN / デプロイ設定を確認してください。\n' + err.message);
   });
 </script>
 </body>
