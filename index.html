@@ -22,6 +22,16 @@
     .doneItem { opacity: 0.35; }
     .muted { color: #666; font-size: 12px; }
 
+    /* 残あり + 期限1日以内 */
+.urgentItem {
+  background: #d32f2f !important;
+  border-color: #b71c1c !important;
+  color: #fff !important;
+}
+.urgentItem .vis-item-content {
+  color: #fff !important;
+}
+
     dialog { width: min(1100px, 96vw); border: 1px solid #ccc; border-radius: 10px; padding: 0; }
     dialog header { border-bottom: 1px solid #eee; }
     dialog .content { padding: 12px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -340,12 +350,28 @@
       const total = Number(o.qty_total || 0);
       const remaining = Number(o.qty_remaining || Math.max(total - done, 0));
 
+      const dueYmd = String(o.due_date || '');
+const today = new Date();
+today.setHours(0,0,0,0);
+
+let daysLeft = 9999;
+if (dueYmd) {
+  const due = new Date(dueYmd + 'T00:00:00');
+  due.setHours(0,0,0,0);
+  daysLeft = Math.floor((due - today) / (24 * 60 * 60 * 1000));
+}
+
+const isUrgent = (remaining > 0 && daysLeft <= 1); // 期限が今日(0) or 明日(1) まで
+
       const lines = (o.lines || []).map(l => {
         const key = `${l.size}/${l.container_type}`;
         return `${key}: ${Number(l.qty_done||0)}/${Number(l.qty_total||0)}（残${Number(l.qty_remaining||0)}）`;
       }).join('\n');
 
       const content = `${o.customer || ''} ${o.order_no || ''}<br>${done}/${total}（残${remaining}）`;
+      const cls = [];
+      if (String(o.status) === 'done') cls.push('doneItem');
+      if (isUrgent) cls.push('urgentItem');
 
       return {
         id: o.order_id,
@@ -354,7 +380,7 @@
         end: endExclusive,
         content,
         title: lines,
-        className: (String(o.status) === 'done') ? 'doneItem' : ''
+        className: cls.join(' ')
       };
     });
 
