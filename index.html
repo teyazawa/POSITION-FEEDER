@@ -6,8 +6,8 @@
   <title>Position / Feeder Board</title>
 
   <link rel="stylesheet" href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css">
-  <script src="https://unpkg.com/vis-data@latest/peer/umd/vis-data.min.js"></script>
-  <script src="https://unpkg.com/vis-timeline@latest/peer/umd/vis-timeline-graph2d.min.js"></script>
+  <script src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
+
 
   <style>
     body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; }
@@ -413,9 +413,12 @@
   /************ Boot ************/
   initDefaults();
   reload().catch(err => {
-    console.error(err);
-    alert('初期ロードに失敗しました。GAS_URL / TOKEN / デプロイ設定を確認してください。\n' + err.message);
-  });
+  console.error(err);
+  alert(
+    '初期ロードに失敗しました。\n' +
+    (err && (err.stack || err.message) ? (err.stack || err.message) : String(err))
+  );
+});
 </script>
 </body>
 </html>
