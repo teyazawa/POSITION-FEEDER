@@ -65,13 +65,20 @@
     </div>
 
     <div class="row">
-      <label>ルート検索（部分一致）</label>
-      <input id="routeFilter" placeholder="例：青海A-1→南本牧" />
+      <label>ルート</label>
+      <select id="routeFilterSel"></select>
     </div>
 
     <div class="row">
-      <label>依頼主検索（部分一致）</label>
-      <input id="customerFilter" placeholder="例：ICT東京" />
+      <label>依頼主</label>
+      <select id="customerFilterSel"></select>
+    </div>
+
+    <div class="row">
+      <label>
+        <input type="checkbox" id="includeOldDone">
+        完了（3か月超）も表示
+      </label>
     </div>
   </div>
 
@@ -84,12 +91,11 @@
       <strong id="dlgTitle">案件</strong>
       <span class="muted" id="dlgSub"></span>
       <div class="spacer"></div>
-      <button id="btnClose">閉じる</button>
+      <button id="btnClose" type="button">閉じる</button>
     </div>
   </header>
 
   <div class="content">
-    <!-- 依頼主（プルダウン） -->
     <div class="row">
       <label>依頼主</label>
       <select id="f_customer"></select>
@@ -99,7 +105,6 @@
     <div class="row"><label>本船</label><input id="f_vessel"></div>
     <div class="row"><label>BL/BK</label><input id="f_bl_bk"></div>
 
-    <!-- 搬出（地域→ヤード） -->
     <div class="row">
       <label>搬出 地域</label>
       <select id="f_from_area"></select>
@@ -109,7 +114,6 @@
       <select id="f_from_yard"></select>
     </div>
 
-    <!-- 搬入（地域→ヤード） -->
     <div class="row">
       <label>搬入 地域</label>
       <select id="f_to_area"></select>
@@ -124,7 +128,6 @@
     <div class="row"><label>開始日（表示用）</label><input id="f_start_date" type="date"></div>
     <div class="row"><label>メモ</label><input id="f_memo"></div>
 
-    <!-- 内訳（サイズ×種類×本数） -->
     <div class="row span2" style="border-top:1px solid #eee; padding-top:12px;">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
         <div>
@@ -152,7 +155,6 @@
       <div class="muted" id="linesTotalText" style="margin-top:6px;">合計: -</div>
     </div>
 
-    <!-- 完了入力（内訳行選択） -->
     <div class="row span2" style="border-top:1px solid #eee; padding-top:12px;">
       <strong>当日完了入力（内訳行を選択）</strong>
       <div class="muted">完了は内訳単位で積み上げます（残本数が正確になります）。</div>
@@ -166,8 +168,8 @@
   </div>
 
   <div class="footer">
-    <button id="btnSave">保存</button>
-    <button id="btnAddDone">当日完了を追加</button>
+    <button id="btnSave" type="button">保存</button>
+    <button id="btnAddDone" type="button">当日完了を追加</button>
   </div>
 </dialog>
 
@@ -229,18 +231,45 @@
 
   function setOptions(selectEl, options, placeholder) {
     selectEl.innerHTML = '';
-    if (placeholder) {
-      const opt = document.createElement('option');
-      opt.value = '';
-      opt.textContent = placeholder;
-      selectEl.appendChild(opt);
-    }
-    options.forEach(v => {
+    const opt0 = document.createElement('option');
+    opt0.value = '';
+    opt0.textContent = placeholder || 'すべて';
+    selectEl.appendChild(opt0);
+
+    for (const v of options) {
       const opt = document.createElement('option');
       opt.value = v;
       opt.textContent = v;
       selectEl.appendChild(opt);
-    });
+    }
+  }
+
+  function uniqueStable(arr) {
+    const seen = new Set();
+    const out = [];
+    for (const v of arr) {
+      const s = String(v || '').trim();
+      if (!s || seen.has(s)) continue;
+      seen.add(s);
+      out.push(s);
+    }
+    return out;
+  }
+
+  function refreshLeftFilters(orders) {
+    const routes = uniqueStable(orders.map(o => o.route || '(未設定)'));
+    setOptions(document.getElementById('routeFilterSel'), routes, 'すべて');
+    setOptions(document.getElementById('customerFilterSel'), (masters?.customers || []), 'すべて');
+  }
+
+  function findAreaForYard(yard) {
+    const y = String(yard || '').trim();
+    if (!y) return '';
+    const m = masters?.yardsByArea || {};
+    for (const area of Object.keys(m)) {
+      if ((m[area] || []).includes(y)) return area;
+    }
+    return '';
   }
 
   /************ Load ************/
@@ -256,14 +285,12 @@
 
   async function loadMasters() {
     masters = await api('listMasters');
-    // customer
+
     setOptions(document.getElementById('f_customer'), masters.customers || [], '選択してください');
 
-    // yard areas
     setOptions(document.getElementById('f_from_area'), masters.yardAreas || [], '地域を選択');
     setOptions(document.getElementById('f_to_area'), masters.yardAreas || [], '地域を選択');
 
-    // initialize yards empty
     setOptions(document.getElementById('f_from_yard'), [], 'ヤードを選択');
     setOptions(document.getElementById('f_to_yard'), [], 'ヤードを選択');
   }
@@ -272,11 +299,14 @@
     const start = document.getElementById('startDate').value;
     const end   = document.getElementById('endDate').value;
 
+    const includeOldDone = document.getElementById('includeOldDone').checked;
+
     const url = new URL(GAS_URL);
     url.searchParams.set('token', TOKEN);
     url.searchParams.set('action', 'listOrders');
     url.searchParams.set('start_date', start);
     url.searchParams.set('end_date', end);
+    url.searchParams.set('include_old_done', includeOldDone ? '1' : '0');
 
     const resp = await jsonp(url);
     if (!resp.ok) throw new Error(resp.error || 'listOrders_failed');
@@ -286,19 +316,19 @@
   /************ Timeline ************/
   function buildTimeline(orders) {
     const statusFilter = document.getElementById('statusFilter').value;
-    const routeFilter  = document.getElementById('routeFilter').value.trim();
-    const customerFilter = document.getElementById('customerFilter').value.trim();
+    const routeFilter = document.getElementById('routeFilterSel').value;
+    const customerFilter = document.getElementById('customerFilterSel').value;
 
     const filtered = orders.filter(o => {
       if (statusFilter && String(o.status) !== statusFilter) return false;
-      if (routeFilter && !String(o.route || '').includes(routeFilter)) return false;
-      if (customerFilter && !String(o.customer || '').includes(customerFilter)) return false;
+      if (routeFilter && String(o.route || '') !== routeFilter) return false;
+      if (customerFilter && String(o.customer || '') !== customerFilter) return false;
       return true;
     });
 
-    const routeSet = new Map();
-    filtered.forEach(o => routeSet.set(o.route || '(未設定)', true));
-    const groupArr = Array.from(routeSet.keys()).sort().map(r => ({ id: r, content: r }));
+    // groups: keep stable order (no sort)
+    const routes = uniqueStable(filtered.map(o => o.route || '(未設定)'));
+    const groupArr = routes.map(r => ({ id: r, content: r }));
     const groups = new vis.DataSet(groupArr);
 
     const itemArr = filtered.map(o => {
@@ -310,7 +340,6 @@
       const total = Number(o.qty_total || 0);
       const remaining = Number(o.qty_remaining || Math.max(total - done, 0));
 
-      // breakdown tooltip
       const lines = (o.lines || []).map(l => {
         const key = `${l.size}/${l.container_type}`;
         return `${key}: ${Number(l.qty_done||0)}/${Number(l.qty_total||0)}（残${Number(l.qty_remaining||0)}）`;
@@ -351,6 +380,7 @@
   async function reload() {
     document.getElementById('statusText').textContent = '読込中...';
     allOrders = await loadOrders();
+    refreshLeftFilters(allOrders);
     buildTimeline(allOrders);
   }
 
@@ -372,7 +402,6 @@
     currentLines.forEach((ln, idx) => {
       const tr = document.createElement('tr');
 
-      // size select
       const tdSize = document.createElement('td');
       const selSize = document.createElement('select');
       selSize.className = 'mini';
@@ -381,7 +410,6 @@
       selSize.onchange = () => { ln.size = selSize.value; updateLinesTotalAndDoneSelect(); };
       tdSize.appendChild(selSize);
 
-      // container_type select
       const tdType = document.createElement('td');
       const selType = document.createElement('select');
       selType.className = 'mini';
@@ -390,7 +418,6 @@
       selType.onchange = () => { ln.container_type = selType.value; updateLinesTotalAndDoneSelect(); };
       tdType.appendChild(selType);
 
-      // qty_total
       const tdQty = document.createElement('td');
       const inpQty = document.createElement('input');
       inpQty.type = 'number';
@@ -400,7 +427,6 @@
       inpQty.oninput = () => { ln.qty_total = Number(inpQty.value || 0); updateLinesTotalAndDoneSelect(); };
       tdQty.appendChild(inpQty);
 
-      // memo
       const tdMemo = document.createElement('td');
       const inpMemo = document.createElement('input');
       inpMemo.className = 'mini';
@@ -408,7 +434,6 @@
       inpMemo.oninput = () => { ln.memo = inpMemo.value; };
       tdMemo.appendChild(inpMemo);
 
-      // remove
       const tdRm = document.createElement('td');
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -453,7 +478,6 @@
     document.getElementById('linesTotalText').textContent = `合計: ${total} 本`;
     document.getElementById('progressText').textContent = `完了 ${done} / ${total}（残 ${remaining}）`;
 
-    // done line select options
     const sel = document.getElementById('f_done_line');
     sel.innerHTML = '';
     currentLines.forEach(ln => {
@@ -483,30 +507,30 @@
       status: 'open'
     };
 
-    // lines
     currentLines = [];
     if (order && Array.isArray(order.lines) && order.lines.length) {
       order.lines.forEach(l => addLine(l));
     } else {
-      addLine(); // at least one line
+      addLine();
     }
 
     document.getElementById('dlgTitle').textContent = currentOrder.order_id ? '案件（編集）' : '案件（新規）';
     document.getElementById('dlgSub').textContent = currentOrder.order_id ? `order_id: ${currentOrder.order_id}` : '';
 
-    // set order fields
     document.getElementById('f_customer').value = currentOrder.customer || '';
     document.getElementById('f_order_no').value = currentOrder.order_no || '';
     document.getElementById('f_vessel').value = currentOrder.vessel || '';
     document.getElementById('f_bl_bk').value = currentOrder.bl_bk || '';
 
-    // area → yard の初期値設定
-    // 既に yard が入っている場合は area を推定せず、そのまま yard を入れます（運用により調整可）
-    document.getElementById('f_from_area').value = '';
-    document.getElementById('f_to_area').value = '';
+    // infer areas from yards (for edit stability)
+    const fromArea = findAreaForYard(currentOrder.from_yard);
+    document.getElementById('f_from_area').value = fromArea;
     updateYards(document.getElementById('f_from_area'), document.getElementById('f_from_yard'));
-    updateYards(document.getElementById('f_to_area'), document.getElementById('f_to_yard'));
     document.getElementById('f_from_yard').value = currentOrder.from_yard || '';
+
+    const toArea = findAreaForYard(currentOrder.to_yard);
+    document.getElementById('f_to_area').value = toArea;
+    updateYards(document.getElementById('f_to_area'), document.getElementById('f_to_yard'));
     document.getElementById('f_to_yard').value = currentOrder.to_yard || '';
 
     document.getElementById('f_route').value = currentOrder.route || '';
@@ -531,13 +555,12 @@
       from_yard: document.getElementById('f_from_yard').value,
       to_yard: document.getElementById('f_to_yard').value,
 
-      route: document.getElementById('f_route').value, // 空ならGASで自動生成
+      route: document.getElementById('f_route').value,
       start_date: document.getElementById('f_start_date').value,
       due_date: document.getElementById('f_due_date').value,
       memo: document.getElementById('f_memo').value
     };
 
-    // lines validation minimal
     const lines = currentLines.map(l => ({
       line_id: l.line_id || '',
       size: l.size || '',
@@ -555,8 +578,9 @@
   document.getElementById('btnClose').addEventListener('click', () => document.getElementById('dlg').close());
 
   document.getElementById('statusFilter').addEventListener('change', () => buildTimeline(allOrders));
-  document.getElementById('routeFilter').addEventListener('input', () => buildTimeline(allOrders));
-  document.getElementById('customerFilter').addEventListener('input', () => buildTimeline(allOrders));
+  document.getElementById('routeFilterSel').addEventListener('change', () => buildTimeline(allOrders));
+  document.getElementById('customerFilterSel').addEventListener('change', () => buildTimeline(allOrders));
+  document.getElementById('includeOldDone').addEventListener('change', () => reload().catch(alert));
 
   document.getElementById('f_from_area').addEventListener('change', () => {
     updateYards(document.getElementById('f_from_area'), document.getElementById('f_from_yard'));
@@ -574,13 +598,11 @@
     try {
       const { order, lines } = readDialogOrderAndLines();
 
-      // order validation
       if (!order.customer) throw new Error('依頼主が未選択です');
       if (!order.from_yard) throw new Error('搬出ヤードが未選択です');
       if (!order.to_yard) throw new Error('搬入ヤードが未選択です');
       if (!order.due_date) throw new Error('期限日が未入力です');
 
-      // lines validation
       if (!lines.length) throw new Error('内訳がありません');
       for (const ln of lines) {
         if (!ln.size) throw new Error('内訳のサイズが未選択の行があります');
