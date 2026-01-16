@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Position / Feeder Board</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css">
+  <script src="https://unpkg.com/vis-data@latest/peer/umd/vis-data.min.js"></script>
+  <script src="https://unpkg.com/vis-timeline@latest/peer/umd/vis-timeline-graph2d.min.js"></script>
+
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; }
+    header { padding: 12px 16px; border-bottom: 1px solid #ddd; display: flex; gap: 12px; align-items: center; }
+    #wrap { display: grid; grid-template-columns: 320px 1fr; height: calc(100vh - 50px); }
+    #left { border-right: 1px solid #ddd; padding: 12px; overflow: auto; }
+    #timeline { height: 100%; }
+    .row { margin-bottom: 10px; }
+    label { display:block; font-size: 12px; color: #444; margin-bottom: 4px; }
+    input, select { width: 100%; padding: 8px; box-sizing: border-box; }
+  </style>
+</head>
+
+<body>
+<header>
+  <strong>盤面（表示テスト）</strong>
+  <button id="btnReload">再描画</button>
+</header>
+
+<div id="wrap">
+  <div id="left">
+    <div class="row">
+      <label>表示開始</label>
+      <input id="startDate" type="date" />
+    </div>
+    <div class="row">
+      <label>表示終了</label>
+      <input id="endDate" type="date" />
+    </div>
+  </div>
+
+  <div id="timeline"></div>
+</div>
+
+<script>
+  let timeline;
+
+  function toDate(d) {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function initDefaults() {
+    const today = new Date();
+    const start = new Date(today); start.setDate(today.getDate()-7);
+    const end   = new Date(today); end.setDate(today.getDate()+21);
+
+    document.getElementById('startDate').value = toDate(start);
+    document.getElementById('endDate').value   = toDate(end);
+  }
+
+  function renderDemo() {
+    const container = document.getElementById('timeline');
+
+    const groups = new vis.DataSet([
+      { id: '青海→大井', content: '青海→大井' },
+      { id: '青海→本牧', content: '青海→本牧' }
+    ]);
+
+    const today = new Date();
+    const d0 = toDate(today);
+    const d1 = toDate(new Date(today.getFullYear(), today.getMonth(), today.getDate()+3));
+    const d2 = toDate(new Date(today.getFullYear(), today.getMonth(), today.getDate()+7));
+
+    const items = new vis.DataSet([
+      { id: 1, group: '青海→大井', start: d0, end: d1, content: '案件A<br>3/10（残7）' },
+      { id: 2, group: '青海→本牧', start: d0, end: d2, content: '案件B<br>6/6（完了）' }
+    ]);
+
+    const options = { stack: true };
+    if (timeline) timeline.destroy();
+    timeline = new vis.Timeline(container, items, groups, options);
+  }
+
+  document.getElementById('btnReload').addEventListener('click', renderDemo);
+
+  initDefaults();
+  renderDemo();
+</script>
+</body>
+</html>
