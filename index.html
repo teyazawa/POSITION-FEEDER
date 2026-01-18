@@ -387,7 +387,13 @@ const isUrgent = (remaining > 0 && daysLeft <= 1); // 期限が今日(0) or 明�
     const items = new vis.DataSet(itemArr);
 
     const container = document.getElementById('timeline');
-    const options = { stack: true };
+    const options = {
+  stack: true,
+  zoomable: false,     // ホイール等のズームを無効
+  zoomKey: null,       // 念のため（環境差対策）
+  moveable: true       // 横スクロール（ドラッグ移動）は維持
+};
+
 
     if (timeline) timeline.destroy();
     timeline = new vis.Timeline(container, items, groups, options);
@@ -628,6 +634,18 @@ const isUrgent = (remaining > 0 && daysLeft <= 1); // 期限が今日(0) or 明�
       if (!order.from_yard) throw new Error('搬出ヤードが未選択です');
       if (!order.to_yard) throw new Error('搬入ヤードが未選択です');
       if (!order.due_date) throw new Error('期限日が未入力です');
+      // 日付の前後チェック（開始日が未入力なら「期限日＝開始日」とみなす運用ならここは任意）
+const sd = document.getElementById('f_start_date').value;
+const dd = document.getElementById('f_due_date').value;
+
+// 開始日が空なら、開始日=期限日として扱う
+const startYmd = sd || dd;
+const dueYmd = dd;
+
+if (startYmd && dueYmd && startYmd > dueYmd) {
+  throw new Error('開始日が期限日より後になっています。開始日／期限日を確認してください。');
+}
+
 
       if (!lines.length) throw new Error('内訳がありません');
       for (const ln of lines) {
