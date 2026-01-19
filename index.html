@@ -515,15 +515,16 @@ timeline = new vis.Timeline(container, items, groups, options);
   locale: 'ja',
   timeAxis: { scale: 'day', step: 1 },
   format: {
-    minorLabels: function(date, scale, step) {
-      if (scale === 'day') return axisDayLabel(date);
-      return ''; // day固定なので基本ここは来ません
-    },
-    majorLabels: function(date, scale, step) {
-      // day固定時の上段は「月表示」にしたい
-      if (scale === 'day') return `${date.getFullYear()}年${date.getMonth()+1}月`;
-      return '';
-    }
+    minorLabels: function(x, scale, step) {
+  if (scale !== 'day') return '';
+  return axisDayLabel(x); // axisDayLabel 内で toJsDate する
+},
+    majorLabels: function(x, scale, step) {
+  if (scale !== 'day') return '';
+  const d = toJsDate(x);
+  if (!d) return '';
+  return `${d.getFullYear()}年${d.getMonth()+1}月`;
+}
   }
 });
 
