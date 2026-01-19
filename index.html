@@ -398,7 +398,7 @@ const winEndBase   = new Date(endInput + 'T00:00:00');
 const winEndBaseExclusive = new Date(winEndBase.getTime() + dayMs);
 
 const rangeDays = Math.max(1, Math.round((winEndBaseExclusive - winStartBase) / dayMs));
-const padDays = Math.round(rangeDays / 3); // 約2倍圧縮（=日幅が約半分）
+const padDays = Math.round(rangeDays * 0.8); // 約2倍圧縮（=日幅が約半分）
 
 const windowStart = new Date(winStartBase.getTime() - padDays * dayMs);
 const windowEnd   = new Date(winEndBaseExclusive.getTime() + padDays * dayMs);
