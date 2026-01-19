@@ -480,8 +480,8 @@ const winEndBaseExclusive = new Date(winEndBase.getTime() + dayMs);
 // 中心日（start〜endの真ん中）
 const center = new Date((winStartBase.getTime() + winEndBaseExclusive.getTime()) / 2);
 
-// 常に表示したい日数（1か月）
-const DAYS_ON_SCREEN = 31; // 30でもOK
+// 常に表示したい日数
+const DAYS_ON_SCREEN = 15; // 30でもOK
 const half = Math.floor(DAYS_ON_SCREEN / 2);
 
 const windowStart = new Date(center.getTime() - half * dayMs);
