@@ -236,11 +236,31 @@ function axisDayLabel(date) {
     const dd = String(d.getDate()).padStart(2,'0');
     return `${yyyy}-${mm}-${dd}`;
   }
-  function addDays(ymd, days) {
-    const d = new Date(ymd + 'T00:00:00');
-    d.setDate(d.getDate() + days);
-    return toDate(d);
-  }
+  function normalizeYmd(v) {
+  if (!v) return '';
+  if (v instanceof Date) return toDate(v);
+
+  const s = String(v).trim();
+  if (!s) return '';
+
+  // 既に YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // ISOや 2026/01/15 などを Date にして yyyy-mm-dd 化
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return toDate(d);
+
+  return '';
+}
+
+function addDays(anyDateLike, days) {
+  const ymd = normalizeYmd(anyDateLike);
+  if (!ymd) return '';
+  const d = new Date(ymd + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return toDate(d);
+}
+
 
   function jsonp(url) {
     return new Promise((resolve, reject) => {
@@ -377,21 +397,24 @@ function axisDayLabel(date) {
     const groups = new vis.DataSet(groupArr);
 
     const itemArr = filtered.map(o => {
-      const start = o.start_date ? String(o.start_date) : String(o.due_date || '');
-      const due = o.due_date ? String(o.due_date) : start;
-      const endExclusive = due ? addDays(due, 1) : start;
+      const start = normalizeYmd(o.start_date || o.due_date);
+const due   = normalizeYmd(o.due_date || start);
 
-      const done = Number(o.qty_done || 0);
-      const total = Number(o.qty_total || 0);
-      const remaining = Number(o.qty_remaining || Math.max(total - done, 0));
+// 日付が壊れている案件は描画しない（盤面崩壊防止）
+if (!start || !due) return null;
 
-      const dueYmd = String(o.due_date || '');
+const endExclusive = addDays(due, 1);
+
+// urgent 判定も正規化済み日付で
 const today = new Date();
 today.setHours(0,0,0,0);
 
-let daysLeft = 9999;
-if (dueYmd) {
-  const due = new Date(dueYmd + 'T00:00:00');
+const dueDate = new Date(due + 'T00:00:00');
+dueDate.setHours(0,0,0,0);
+
+const daysLeft = Math.floor((dueDate - today) / (24 * 60 * 60 * 1000));
+const isUrgent = (remaining > 0 && daysLeft <= 1);
+
   due.setHours(0,0,0,0);
   daysLeft = Math.floor((due - today) / (24 * 60 * 60 * 1000));
 }
@@ -417,7 +440,7 @@ const isUrgent = (remaining > 0 && daysLeft <= 1); // 期限が今日(0) or 明�
         title: lines,
         className: cls.join(' ')
       };
-    });
+    }).filter(Boolean);
 
     const items = new vis.DataSet(itemArr);
 
