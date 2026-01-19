@@ -387,16 +387,51 @@ const isUrgent = (remaining > 0 && daysLeft <= 1); // 期限が今日(0) or 明�
     const items = new vis.DataSet(itemArr);
 
     const container = document.getElementById('timeline');
-    const options = {
+
+// 表示範囲（UIの開始/終了）を基準に、日幅を“半分くらい”にするためレンジを2倍に圧縮表示
+const startInput = document.getElementById('startDate').value; // YYYY-MM-DD
+const endInput   = document.getElementById('endDate').value;   // YYYY-MM-DD
+
+const dayMs = 24 * 60 * 60 * 1000;
+const winStartBase = new Date(startInput + 'T00:00:00');
+const winEndBase   = new Date(endInput + 'T00:00:00');
+
+// end は表示上、最終日を含めたいので +1日（endは排他的扱い）
+const winEndBaseExclusive = new Date(winEndBase.getTime() + dayMs);
+
+// レンジ（日数）
+const rangeDays = Math.max(1, Math.round((winEndBaseExclusive - winStartBase) / dayMs));
+
+// 「1日間隔を今の4時間間隔の半分くらい」＝見た目を圧縮（レンジを約2倍）
+// → 前後に rangeDays/2 ずつ余白を足す
+const padDays = Math.round(rangeDays / 2);
+
+const windowStart = new Date(winStartBase.getTime() - padDays * dayMs);
+const windowEnd   = new Date(winEndBaseExclusive.getTime() + padDays * dayMs);
+
+const options = {
   stack: true,
-  zoomable: false,     // ホイール等のズームを無効
-  zoomKey: null,       // 念のため（環境差対策）
-  moveable: true       // 横スクロール（ドラッグ移動）は維持
+
+  // 1日単位に固定（時間目盛りを出さない）
+  timeAxis: { scale: 'day', step: 1 },
+  format: {
+    minorLabels: { day: 'MM/DD（ddd）' },
+    majorLabels: { day: 'YYYY年M月' }
+  },
+
+  // ホイールズーム無効（前に入れた設定）
+  zoomable: false,
+  zoomKey: null,
+  moveable: true,
+
+  // 表示レンジを固定（ここで日幅が決まる）
+  start: windowStart,
+  end: windowEnd
 };
 
+if (timeline) timeline.destroy();
+timeline = new vis.Timeline(container, items, groups, options);
 
-    if (timeline) timeline.destroy();
-    timeline = new vis.Timeline(container, items, groups, options);
 
     timeline.on('select', props => {
       if (!props.items || props.items.length === 0) return;
