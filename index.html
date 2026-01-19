@@ -439,7 +439,7 @@ const rangeDays = Math.max(1, Math.round((winEndBaseExclusive - winStartBase) / 
 
 // 「1日間隔を今の4時間間隔の半分くらい」＝見た目を圧縮（レンジを約2倍）
 // → 前後に rangeDays/2 ずつ余白を足す
-const padDays = Math.round(rangeDays * 1);
+const padDays = Math.round(rangeDays / 2);
 
 const windowStart = new Date(winStartBase.getTime() - padDays * dayMs);
 const windowEnd   = new Date(winEndBaseExclusive.getTime() + padDays * dayMs);
