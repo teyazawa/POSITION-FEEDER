@@ -20,17 +20,21 @@
     input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; }
     button { padding: 8px 10px; }
     .doneItem { opacity: 0.35; }
+    /* 軸ラベル（土/日/祝） */
+    .axisSat { color: #1976d2; font-weight: 600; }  /* 土：青 */
+    .axisSun { color: #d32f2f; font-weight: 700; }  /* 日・祝：赤 */
+
     .muted { color: #666; font-size: 12px; }
 
     /* 残あり + 期限1日以内 */
-.urgentItem {
-  background: #d32f2f !important;
-  border-color: #b71c1c !important;
-  color: #fff !important;
-}
-.urgentItem .vis-item-content {
-  color: #fff !important;
-}
+    .urgentItem {
+      background: #d32f2f !important;
+      border-color: #b71c1c !important;
+      color: #fff !important;
+    }
+    .urgentItem .vis-item-content {
+      color: #fff !important;
+    }
 
     dialog { width: min(1100px, 96vw); border: 1px solid #ccc; border-radius: 10px; padding: 0; }
     dialog header { border-bottom: 1px solid #eee; }
@@ -196,6 +200,35 @@
   let currentOrder = null;     // order object
   let currentLines = [];       // [{line_id,size,container_type,qty_total,memo, qty_done, qty_remaining}]
 
+  // 曜日（日本語）
+const JP_DOW = ['日','月','火','水','木','金','土'];
+
+// 祝日（mastersから来る想定。なければ空）
+let holidaySet = new Set();
+
+function ymdFromDate(d) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function axisDayLabel(date) {
+  const d = date.getDate();
+  const dow = JP_DOW[date.getDay()];
+  const ymd = ymdFromDate(date);
+
+  const isHoliday = holidaySet.has(ymd);
+  const isSun = (date.getDay() === 0) || isHoliday;
+  const isSat = (date.getDay() === 6);
+
+  const text = `${d}日(${dow})`;
+  if (isSun) return `<span class="axisSun">${text}</span>`;
+  if (isSat) return `<span class="axisSat">${text}</span>`;
+  return text;
+}
+
+
   /************ Utils ************/
   function toDate(d) {
     const yyyy = d.getFullYear();
@@ -295,6 +328,8 @@
 
   async function loadMasters() {
     masters = await api('listMasters');
+
+    holidaySet = new Set(masters?.holidays || []);
 
     setOptions(document.getElementById('f_customer'), masters.customers || [], '選択してください');
 
@@ -404,7 +439,7 @@ const rangeDays = Math.max(1, Math.round((winEndBaseExclusive - winStartBase) / 
 
 // 「1日間隔を今の4時間間隔の半分くらい」＝見た目を圧縮（レンジを約2倍）
 // → 前後に rangeDays/2 ずつ余白を足す
-const padDays = Math.round(rangeDays * 0.8);
+const padDays = Math.round(rangeDays * 1);
 
 const windowStart = new Date(winStartBase.getTime() - padDays * dayMs);
 const windowEnd   = new Date(winEndBaseExclusive.getTime() + padDays * dayMs);
@@ -431,6 +466,23 @@ const options = {
 
 if (timeline) timeline.destroy();
 timeline = new vis.Timeline(container, items, groups, options);
+
+    timeline.setOptions({
+  locale: 'ja',
+  timeAxis: { scale: 'day', step: 1 },
+  format: {
+    minorLabels: function(date, scale, step) {
+      if (scale === 'day') return axisDayLabel(date);
+      return ''; // day固定なので基本ここは来ません
+    },
+    majorLabels: function(date, scale, step) {
+      // day固定時の上段は「月表示」にしたい
+      if (scale === 'day') return `${date.getFullYear()}年${date.getMonth()+1}月`;
+      return '';
+    }
+  }
+});
+
 
     timeline.on('select', props => {
       if (!props.items || props.items.length === 0) return;
