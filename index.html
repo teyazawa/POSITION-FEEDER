@@ -21,8 +21,9 @@
     button { padding: 8px 10px; }
     .doneItem { opacity: 0.35; }
     /* 軸ラベル（土/日/祝） */
-    .axisSat { color: #1976d2; font-weight: 600; }  /* 土：青 */
-    .axisSun { color: #d32f2f; font-weight: 700; }  /* 日・祝：赤 */
+    .vis-time-axis .vis-text.axisSat { color: #1976d2 !important; font-weight: 600; }  /* 土：青 */
+    .vis-time-axis .vis-text.axisSun { color: #d32f2f !important; font-weight: 700; }  /* 日・祝：赤 */
+
 
     .muted { color: #666; font-size: 12px; }
 
@@ -221,6 +222,9 @@ function ymdFromDate(x) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+// 軸ラベルの色判定を保持（描画後にDOMへ反映する）
+let axisClassByLabelText = Object.create(null);
+
 function axisDayLabel(x) {
   const date = toJsDate(x);
   if (!date) return '';
@@ -234,11 +238,21 @@ function axisDayLabel(x) {
   const isSat = (date.getDay() === 6);
 
   const text = `${d}日(${dow})`;
-  if (isSun) return `<span class="axisSun">${text}</span>`;
-  if (isSat) return `<span class="axisSat">${text}</span>`;
-  return text;
+
+  // 祝日を優先して赤、次に土曜を青
+  axisClassByLabelText[text] = isSun ? 'axisSun' : (isSat ? 'axisSat' : '');
+  return text; // HTMLは返さない（文字だけ）
 }
 
+function applyAxisColors() {
+  const labels = document.querySelectorAll('#timeline .vis-time-axis .vis-text.vis-minor');
+  labels.forEach(el => {
+    el.classList.remove('axisSat', 'axisSun');
+    const t = (el.textContent || '').trim();
+    const cls = axisClassByLabelText[t];
+    if (cls) el.classList.add(cls);
+  });
+}
 
 
   /************ Utils ************/
@@ -508,6 +522,9 @@ const options = {
 };
 
 if (timeline) timeline.destroy();
+
+// 軸色マップを毎回作り直し
+axisClassByLabelText = Object.create(null);
 timeline = new vis.Timeline(container, items, groups, options);
 
     timeline.setOptions({
@@ -527,6 +544,9 @@ timeline = new vis.Timeline(container, items, groups, options);
   }
 });
 
+// （中略）timeline生成、setOptions が終わったら…
+timeline.on('changed', applyAxisColors);
+setTimeout(applyAxisColors, 0);
 
     timeline.on('select', props => {
       if (!props.items || props.items.length === 0) return;
