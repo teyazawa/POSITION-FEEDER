@@ -468,17 +468,6 @@ function addDays(anyDateLike, days) {
 
     const container = document.getElementById('timeline');
 
-// 表示範囲（UIの開始/終了）を基準に、日幅を“半分くらい”にするためレンジを2倍に圧縮表示
-const startInput = document.getElementById('startDate').value; // YYYY-MM-DD
-const endInput   = document.getElementById('endDate').value;   // YYYY-MM-DD
-
-const dayMs = 24 * 60 * 60 * 1000;
-const winStartBase = new Date(startInput + 'T00:00:00');
-const winEndBase   = new Date(endInput + 'T00:00:00');
-
-// end は表示上、最終日を含めたいので +1日（endは排他的扱い）
-const winEndBaseExclusive = new Date(winEndBase.getTime() + dayMs);
-
 // 表示範囲（UIの開始/終了）を基準に「常に約1か月」を表示
 const startInput = document.getElementById('startDate').value; // YYYY-MM-DD
 const endInput   = document.getElementById('endDate').value;   // YYYY-MM-DD
