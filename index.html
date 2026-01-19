@@ -202,18 +202,29 @@
 
   // 曜日（日本語）
 const JP_DOW = ['日','月','火','水','木','金','土'];
-
-// 祝日（mastersから来る想定。なければ空）
 let holidaySet = new Set();
 
-function ymdFromDate(d) {
+function toJsDate(x) {
+  if (x instanceof Date) return x;
+  // 数値(UNIX ms) / 文字列 / それ以外 も吸収
+  const d = new Date(x);
+  if (isNaN(d.getTime())) return null;
+  return d;
+}
+
+function ymdFromDate(x) {
+  const d = toJsDate(x);
+  if (!d) return '';
   const yyyy = d.getFullYear();
-  const mm = String(d.getMonth()+1).padStart(2,'0');
-  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
 }
 
-function axisDayLabel(date) {
+function axisDayLabel(x) {
+  const date = toJsDate(x);
+  if (!date) return '';
+
   const d = date.getDate();
   const dow = JP_DOW[date.getDay()];
   const ymd = ymdFromDate(date);
@@ -227,6 +238,7 @@ function axisDayLabel(date) {
   if (isSat) return `<span class="axisSat">${text}</span>`;
   return text;
 }
+
 
 
   /************ Utils ************/
@@ -489,7 +501,6 @@ const options = {
 
   // ホイールズーム無効（前に入れた設定）
   zoomable: false,
-  zoomKey: null,
   moveable: true,
 
   // 表示レンジを固定（ここで日幅が決まる）
