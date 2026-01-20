@@ -14,12 +14,12 @@
     header .spacer { flex: 1; }
     #wrap { display: flex; height: calc(100vh - 50px); }
     #left {
-      width: 280px;               /* 初期幅 */
+      width: 280px;
       min-width: 220px;
       max-width: 520px;
       padding: 12px;
       overflow: auto;
-      border-right: none;         /* splitter側で線を出す */
+      border-right: none;
     }
 
     #splitter{
@@ -32,22 +32,20 @@
 
     #timeline{
       flex: 1 1 auto;
-      min-width: 0;               /* flex縮小で重要 */
+      min-width: 0;
       height: 100%;
     }
     .row { margin-bottom: 10px; }
     label { display:block; font-size: 12px; color: #444; margin-bottom: 4px; }
+    label .required { color: #d32f2f; margin-left: 4px; font-weight: 600; }
     input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; }
     button { padding: 8px 10px; }
     .doneItem { opacity: 0.35; }
-    /* 軸ラベル（土/日/祝） */
-    .vis-time-axis .vis-text.axisSat { color: #1976d2 !important; font-weight: 600; }  /* 土：青 */
-    .vis-time-axis .vis-text.axisSun { color: #d32f2f !important; font-weight: 700; }  /* 日・祝：赤 */
-
+    .vis-time-axis .vis-text.axisSat { color: #1976d2 !important; font-weight: 600; }
+    .vis-time-axis .vis-text.axisSun { color: #d32f2f !important; font-weight: 700; }
 
     .muted { color: #666; font-size: 12px; }
 
-    /* 残あり + 期限1日以内 */
     .urgentItem {
       background: #d32f2f !important;
       border-color: #b71c1c !important;
@@ -57,16 +55,73 @@
       color: #fff !important;
     }
 
-    dialog { width: min(1100px, 96vw); border: 1px solid #ccc; border-radius: 10px; padding: 0; }
+    dialog { 
+      width: min(1100px, 96vw); 
+      max-height: 90vh;
+      border: 1px solid #ccc; 
+      border-radius: 10px; 
+      padding: 0; 
+    }
     dialog header { border-bottom: 1px solid #eee; }
-    dialog .content { padding: 12px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    dialog .footer { padding: 12px 16px; border-top: 1px solid #eee; display:flex; justify-content:flex-end; gap: 8px; }
-    .span2 { grid-column: span 2; }
+    dialog .content { 
+      padding: 16px 20px; 
+      overflow-y: auto; 
+      max-height: calc(90vh - 120px);
+    }
+    dialog .footer { 
+      padding: 12px 16px; 
+      border-top: 1px solid #eee; 
+      display:flex; 
+      justify-content:flex-end; 
+      gap: 8px; 
+    }
+
+    /* ダイアログ内のセクション */
+    .dialog-section {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      background: #fafafa;
+    }
+    .dialog-section-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: #333;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #1976d2;
+    }
+    
+    /* グリッドレイアウト */
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+    .form-grid-4 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 12px;
+    }
 
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
     th, td { border-bottom: 1px solid #eee; padding: 6px 4px; text-align: left; vertical-align: middle; }
     .mini { padding: 6px; }
     .btnSmall { padding: 6px 8px; font-size: 12px; }
+    
+    /* 完了数表示 */
+    .done-badge {
+      margin-left: 8px;
+      color: #4caf50;
+      font-size: 11px;
+      font-weight: 600;
+    }
   </style>
 </head>
 
@@ -131,102 +186,167 @@
   </header>
 
   <div class="content">
-    <div class="row">
-      <label>依頼主</label>
-      <select id="f_customer"></select>
-    </div>
-
-    <div class="row"><label>受注番号</label><input id="f_order_no"></div>
-    <div class="row"><label>本船</label><input id="f_vessel"></div>
-    <div class="row"><label>BL/BK</label><input id="f_bl_bk"></div>
-    <div class="row"><label>VOY No</label><input id="f_voy" placeholder="半角英数字（自動補正）"></div>
-
-<div class="row">
-  <label>輸入出</label>
-  <select id="f_inout"></select>
-</div>
-
-<div class="row">
-  <label>シャーシ</label>
-  <select id="f_chassis"></select>
-</div>
-
-<div class="row">
-  <label>税区分</label>
-  <select id="f_tax"></select>
-</div>
-
-<div class="row">
-  <label>配送先</label>
-  <select id="f_destination"></select>
-</div>
-
-
-    <div class="row">
-      <label>搬出 地域</label>
-      <select id="f_from_area"></select>
-    </div>
-    <div class="row">
-      <label>搬出 ヤード</label>
-      <select id="f_from_yard"></select>
-    </div>
-
-    <div class="row">
-      <label>搬入 地域</label>
-      <select id="f_to_area"></select>
-    </div>
-    <div class="row">
-      <label>搬入 ヤード</label>
-      <select id="f_to_yard"></select>
-    </div>
-
-    <div class="row"><label>ルート（空なら自動生成）</label><input id="f_route" placeholder="例：青海A-1→南本牧"></div>
-    <div class="row"><label>期限日</label><input id="f_due_date" type="date"></div>
-    <div class="row"><label>開始日（表示用）</label><input id="f_start_date" type="date"></div>
-    <div class="row"><label>メモ</label><input id="f_memo"></div>
-
-    <div class="row span2" style="border-top:1px solid #eee; padding-top:12px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-        <div>
-          <strong>内訳（サイズ×種類×本数）</strong>
-          <div class="muted">同一案件内に複数行で登録できます（バーは増えません）。</div>
+    <!-- 基本情報 -->
+    <div class="dialog-section">
+      <div class="dialog-section-title">📋 基本情報</div>
+      <div class="form-grid-2">
+        <div class="row">
+          <label>依頼主<span class="required">*</span></label>
+          <select id="f_customer"></select>
         </div>
-        <button class="btnSmall" id="btnAddLine" type="button">内訳行を追加</button>
+        <div class="row">
+          <label>受注番号<span class="required">*</span></label>
+          <input id="f_order_no" placeholder="半角英数字（自動変換）">
+        </div>
+      </div>
+      
+      <div class="form-grid-3">
+        <div class="row">
+          <label>本船名</label>
+          <input id="f_vessel" placeholder="半角英数字（自動変換）">
+        </div>
+        <div class="row">
+          <label>BL/BK</label>
+          <input id="f_bl_bk" placeholder="半角英数字（自動変換）">
+        </div>
+        <div class="row">
+          <label>VOY No</label>
+          <input id="f_voy" placeholder="半角英数字（自動変換）">
+        </div>
+      </div>
+    </div>
+
+    <!-- 輸送情報 -->
+    <div class="dialog-section">
+      <div class="dialog-section-title">🚚 輸送情報</div>
+      <div class="form-grid-4">
+        <div class="row">
+          <label>輸入出</label>
+          <select id="f_inout"></select>
+        </div>
+        <div class="row">
+          <label>シャーシ</label>
+          <select id="f_chassis"></select>
+        </div>
+        <div class="row">
+          <label>税区分</label>
+          <select id="f_tax"></select>
+        </div>
+        <div class="row">
+          <label>配送先</label>
+          <select id="f_destination"></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- ヤード情報 -->
+    <div class="dialog-section">
+      <div class="dialog-section-title">📍 ヤード情報</div>
+      <div class="form-grid-2">
+        <div>
+          <div class="row">
+            <label>搬出 地域<span class="required">*</span></label>
+            <select id="f_from_area"></select>
+          </div>
+          <div class="row">
+            <label>搬出 ヤード<span class="required">*</span></label>
+            <select id="f_from_yard"></select>
+          </div>
+        </div>
+        <div>
+          <div class="row">
+            <label>搬入 地域<span class="required">*</span></label>
+            <select id="f_to_area"></select>
+          </div>
+          <div class="row">
+            <label>搬入 ヤード<span class="required">*</span></label>
+            <select id="f_to_yard"></select>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <label>ルート（空なら自動生成）</label>
+        <input id="f_route" placeholder="例：青海A-1→南本牧">
+      </div>
+    </div>
+
+    <!-- 日程情報 -->
+    <div class="dialog-section">
+      <div class="dialog-section-title">📅 日程情報</div>
+      <div class="form-grid-3">
+        <div class="row">
+          <label>開始日（表示用）</label>
+          <input id="f_start_date" type="date">
+        </div>
+        <div class="row">
+          <label>期限日<span class="required">*</span></label>
+          <input id="f_due_date" type="date">
+        </div>
+        <div class="row">
+          <label>メモ</label>
+          <input id="f_memo">
+        </div>
+      </div>
+    </div>
+
+    <!-- 内訳 -->
+    <div class="dialog-section">
+      <div class="dialog-section-title">📦 内訳（サイズ×種類×本数）</div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+        <div class="muted">同一案件内に複数行で登録できます（バーは増えません）</div>
+        <button class="btnSmall" id="btnAddLine" type="button">+ 内訳行を追加</button>
       </div>
 
-      <div style="margin-top:8px; overflow:auto;">
+      <div style="overflow:auto;">
         <table>
           <thead>
             <tr>
-              <th style="width:140px;">サイズ</th>
-              <th style="width:200px;">種類</th>
-              <th style="width:120px;">総本数</th>
+              <th style="width:120px;">サイズ</th>
+              <th style="width:180px;">種類</th>
+              <th style="width:100px;">総本数</th>
               <th>メモ</th>
-              <th style="width:80px;"></th>
+              <th style="width:60px;"></th>
             </tr>
           </thead>
           <tbody id="linesBody"></tbody>
         </table>
       </div>
 
-      <div class="muted" id="linesTotalText" style="margin-top:6px;">合計: -</div>
+      <div class="muted" id="linesTotalText" style="margin-top:8px;">合計: -</div>
     </div>
 
-    <div class="row span2" style="border-top:1px solid #eee; padding-top:12px;">
-      <strong>当日完了入力（内訳行を選択）</strong>
-      <div class="muted">完了は内訳単位で積み上げます（残本数が正確になります）。</div>
+    <!-- 当日完了入力 -->
+    <div class="dialog-section">
+      <div class="dialog-section-title">✅ 当日完了入力</div>
+      <div class="muted" style="margin-bottom:12px;">完了は内訳単位で積み上げます（残本数が正確になります）</div>
+      
+      <div class="form-grid-2">
+        <div class="row">
+          <label>作業日</label>
+          <input id="f_work_date" type="date">
+        </div>
+        <div class="row">
+          <label>内訳行</label>
+          <select id="f_done_line"></select>
+        </div>
+      </div>
+      
+      <div class="form-grid-2">
+        <div class="row">
+          <label>当日完了本数</label>
+          <input id="f_qty_done_today" type="number" min="0">
+        </div>
+        <div class="row">
+          <label>進捗（合計）</label>
+          <div class="muted" id="progressText">-</div>
+        </div>
+      </div>
     </div>
-
-    <div class="row"><label>作業日</label><input id="f_work_date" type="date"></div>
-    <div class="row"><label>内訳行</label><select id="f_done_line"></select></div>
-
-    <div class="row"><label>当日完了本数</label><input id="f_qty_done_today" type="number" min="0"></div>
-    <div class="row"><label>進捗（合計）</label><div class="muted" id="progressText">-</div></div>
   </div>
 
   <div class="footer">
-    <button id="btnSave" type="button">保存</button>
-    <button id="btnAddDone" type="button">当日完了を追加</button>
+    <button id="btnSave" type="button">💾 保存</button>
+    <button id="btnAddDone" type="button">✅ 当日完了を追加</button>
   </div>
 </dialog>
 
@@ -240,62 +360,56 @@
   let allOrders = [];
   let masters = null;
 
-  let currentOrder = null;     // order object
-  let currentLines = [];       // [{line_id,size,container_type,qty_total,memo, qty_done, qty_remaining}]
+  let currentOrder = null;
+  let currentLines = [];
 
-  // 曜日（日本語）
-const JP_DOW = ['日','月','火','水','木','金','土'];
-let holidaySet = new Set();
+  const JP_DOW = ['日','月','火','水','木','金','土'];
+  let holidaySet = new Set();
 
-function toJsDate(x) {
-  if (x instanceof Date) return x;
-  // 数値(UNIX ms) / 文字列 / それ以外 も吸収
-  const d = new Date(x);
-  if (isNaN(d.getTime())) return null;
-  return d;
-}
+  function toJsDate(x) {
+    if (x instanceof Date) return x;
+    const d = new Date(x);
+    if (isNaN(d.getTime())) return null;
+    return d;
+  }
 
-function ymdFromDate(x) {
-  const d = toJsDate(x);
-  if (!d) return '';
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
+  function ymdFromDate(x) {
+    const d = toJsDate(x);
+    if (!d) return '';
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
 
-// 軸ラベルの色判定を保持（描画後にDOMへ反映する）
-let axisClassByLabelText = Object.create(null);
+  let axisClassByLabelText = Object.create(null);
 
-function axisDayLabel(x) {
-  const date = toJsDate(x);
-  if (!date) return '';
+  function axisDayLabel(x) {
+    const date = toJsDate(x);
+    if (!date) return '';
 
-  const d = date.getDate();
-  const dow = JP_DOW[date.getDay()];
-  const ymd = ymdFromDate(date);
+    const d = date.getDate();
+    const dow = JP_DOW[date.getDay()];
+    const ymd = ymdFromDate(date);
 
-  const isHoliday = holidaySet.has(ymd);
-  const isSun = (date.getDay() === 0) || isHoliday;
-  const isSat = (date.getDay() === 6);
+    const isHoliday = holidaySet.has(ymd);
+    const isSun = (date.getDay() === 0) || isHoliday;
+    const isSat = (date.getDay() === 6);
 
-  const text = `${d}日(${dow})`;
+    const text = `${d}日(${dow})`;
+    axisClassByLabelText[text] = isSun ? 'axisSun' : (isSat ? 'axisSat' : '');
+    return text;
+  }
 
-  // 祝日を優先して赤、次に土曜を青
-  axisClassByLabelText[text] = isSun ? 'axisSun' : (isSat ? 'axisSat' : '');
-  return text; // HTMLは返さない（文字だけ）
-}
-
-function applyAxisColors() {
-  const labels = document.querySelectorAll('#timeline .vis-time-axis .vis-text.vis-minor');
-  labels.forEach(el => {
-    el.classList.remove('axisSat', 'axisSun');
-    const t = (el.textContent || '').trim();
-    const cls = axisClassByLabelText[t];
-    if (cls) el.classList.add(cls);
-  });
-}
-
+  function applyAxisColors() {
+    const labels = document.querySelectorAll('#timeline .vis-time-axis .vis-text.vis-minor');
+    labels.forEach(el => {
+      el.classList.remove('axisSat', 'axisSun');
+      const t = (el.textContent || '').trim();
+      const cls = axisClassByLabelText[t];
+      if (cls) el.classList.add(cls);
+    });
+  }
 
   /************ Utils ************/
   function toDate(d) {
@@ -304,56 +418,50 @@ function applyAxisColors() {
     const dd = String(d.getDate()).padStart(2,'0');
     return `${yyyy}-${mm}-${dd}`;
   }
+  
   function normalizeYmd(v) {
-  if (!v) return '';
-  if (v instanceof Date) return toDate(v);
-
-  const s = String(v).trim();
-  if (!s) return '';
-
-  // 既に YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-
-  // ISOや 2026/01/15 などを Date にして yyyy-mm-dd 化
-  const d = new Date(s);
-  if (!isNaN(d.getTime())) return toDate(d);
-
-  return '';
-}
+    if (!v) return '';
+    if (v instanceof Date) return toDate(v);
+    const s = String(v).trim();
+    if (!s) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return toDate(d);
+    return '';
+  }
 
   function fmtSizeLabel(v) {
-  const s = String(v ?? '').trim();
-  if (!s) return '';
-  return (/^\d+$/.test(s)) ? `${s}F` : s;  // 20 -> 20F
-}
+    const s = String(v ?? '').trim();
+    if (!s) return '';
+    return (/^\d+$/.test(s)) ? `${s}F` : s;
+  }
 
-function normalizeVoy(str) {
-  if (!str) return '';
-  let s = String(str);
+  // 半角大文字英数字への変換関数
+  function normalizeAlphanumeric(str) {
+    if (!str) return '';
+    let s = String(str);
+    
+    // 全角→半角
+    s = s.replace(/[０-９Ａ-Ｚａ-ｚ]/g, ch =>
+      String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)
+    );
+    
+    // 大文字化
+    s = s.toUpperCase();
+    
+    // 英数字とハイフンのみ残す
+    s = s.replace(/[^A-Z0-9\-]/g, '');
+    
+    return s;
+  }
 
-  // 全角英数→半角
-  s = s.replace(/[０-９Ａ-Ｚａ-ｚ]/g, ch =>
-    String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)
-  );
-
-  // 大文字化
-  s = s.toUpperCase();
-
-  // 英数字以外を除去
-  s = s.replace(/[^A-Z0-9]/g, '');
-
-  return s;
-}
-
-
-function addDays(anyDateLike, days) {
-  const ymd = normalizeYmd(anyDateLike);
-  if (!ymd) return '';
-  const d = new Date(ymd + 'T00:00:00');
-  d.setDate(d.getDate() + days);
-  return toDate(d);
-}
-
+  function addDays(anyDateLike, days) {
+    const ymd = normalizeYmd(anyDateLike);
+    if (!ymd) return '';
+    const d = new Date(ymd + 'T00:00:00');
+    d.setDate(d.getDate() + days);
+    return toDate(d);
+  }
 
   function jsonp(url) {
     return new Promise((resolve, reject) => {
@@ -441,31 +549,23 @@ function addDays(anyDateLike, days) {
 
   async function loadMasters() {
     masters = await api('listMasters');
-
     holidaySet = new Set(masters?.holidays || []);
 
     setOptions(document.getElementById('f_customer'), masters.customers || [], '選択してください');
-
     setOptions(document.getElementById('f_from_area'), masters.yardAreas || [], '地域を選択');
     setOptions(document.getElementById('f_to_area'), masters.yardAreas || [], '地域を選択');
-
     setOptions(document.getElementById('f_from_yard'), [], 'ヤードを選択');
     setOptions(document.getElementById('f_to_yard'), [], 'ヤードを選択');
 
-    // 固定プルダウン
     setOptions(document.getElementById('f_inout'),   ['輸入','輸出'], '選択してください');
     setOptions(document.getElementById('f_chassis'), ['3軸','MG'],     '選択してください');
     setOptions(document.getElementById('f_tax'),     ['課税','免税'],  '選択してください');
-
-    // 配送先（マスタ）
     setOptions(document.getElementById('f_destination'), masters.destinations || [], '選択してください');
-
   }
 
   async function loadOrders() {
     const start = document.getElementById('startDate').value;
     const end   = document.getElementById('endDate').value;
-
     const includeOldDone = document.getElementById('includeOldDone').checked;
 
     const url = new URL(GAS_URL);
@@ -505,42 +605,37 @@ function addDays(anyDateLike, days) {
     const groups = new vis.DataSet(groupArr);
 
     const itemArr = filtered.map(o => {
-  // 日付は必ず YYYY-MM-DD に正規化
-  const start = normalizeYmd(o.start_date || o.due_date);
-  const due   = normalizeYmd(o.due_date || start);
+      const start = normalizeYmd(o.start_date || o.due_date);
+      const due   = normalizeYmd(o.due_date || start);
 
-  // 日付が壊れている案件は描画しない（盤面崩壊防止）
-  if (!start || !due) return null;
+      if (!start || !due) return null;
 
-  const endExclusive = addDays(due, 1);
+      const endExclusive = addDays(due, 1);
 
-  // 進捗（order全体）
-  const done = Number(o.qty_done || 0);
-  const total = Number(o.qty_total || 0);
-  const remaining = Number(
-    (o.qty_remaining != null && o.qty_remaining !== '') ? o.qty_remaining : Math.max(total - done, 0)
-  );
+      const done = Number(o.qty_done || 0);
+      const total = Number(o.qty_total || 0);
+      const remaining = Number(
+        (o.qty_remaining != null && o.qty_remaining !== '') ? o.qty_remaining : Math.max(total - done, 0)
+      );
 
-  // urgent 判定（残あり + 期限が今日/明日/期限超過）
-  const today = new Date();
-  today.setHours(0,0,0,0);
+      const today = new Date();
+      today.setHours(0,0,0,0);
 
-  const dueDate = new Date(due + 'T00:00:00');
-  dueDate.setHours(0,0,0,0);
+      const dueDate = new Date(due + 'T00:00:00');
+      dueDate.setHours(0,0,0,0);
 
-  const daysLeft = Math.floor((dueDate - today) / (24 * 60 * 60 * 1000));
-  const isUrgent = (remaining > 0 && daysLeft <= 1);
+      const daysLeft = Math.floor((dueDate - today) / (24 * 60 * 60 * 1000));
+      const isUrgent = (remaining > 0 && daysLeft <= 1);
 
-  // breakdown tooltip
-  const lines = (o.lines || []).map(l => {
-    const key = `${l.size}/${l.container_type}`;
-    const lDone = Number(l.qty_done || 0);
-    const lTotal = Number(l.qty_total || 0);
-    const lRem = Number(
-      (l.qty_remaining != null && l.qty_remaining !== '') ? l.qty_remaining : Math.max(lTotal - lDone, 0)
-    );
-    return `${key}: ${lDone}/${lTotal}（残${lRem}）`;
-  }).join('\n');
+      const lines = (o.lines || []).map(l => {
+        const key = `${l.size}/${l.container_type}`;
+        const lDone = Number(l.qty_done || 0);
+        const lTotal = Number(l.qty_total || 0);
+        const lRem = Number(
+          (l.qty_remaining != null && l.qty_remaining !== '') ? l.qty_remaining : Math.max(lTotal - lDone, 0)
+        );
+        return `${key}: ${lDone}/${lTotal}（残${lRem}）`;
+      }).join('\n');
 
       const bySize = {};
       (o.lines || []).forEach(l => {
@@ -557,7 +652,6 @@ function addDays(anyDateLike, days) {
       const sizeRemText = Object.keys(bySize).length
         ? Object.entries(bySize).map(([k,v]) => `${k}残${v}`).join('<br>')
         : `残${remaining}`;
-
 
       const routeText = String(o.route || '').trim() || [o.from_yard, o.to_yard].filter(Boolean).join('→') || '(ルート未設定)';
       const orderNoText = String(o.order_no || '').trim();
@@ -580,74 +674,60 @@ function addDays(anyDateLike, days) {
     }).filter(Boolean);
 
     const items = new vis.DataSet(itemArr);
-
     const container = document.getElementById('timeline');
 
-// 表示範囲（UIの開始/終了）を基準に「常に約1か月」を表示
-const startInput = document.getElementById('startDate').value; // YYYY-MM-DD
-const endInput   = document.getElementById('endDate').value;   // YYYY-MM-DD
+    const startInput = document.getElementById('startDate').value;
+    const endInput   = document.getElementById('endDate').value;
 
-const dayMs = 24 * 60 * 60 * 1000;
-const winStartBase = new Date(startInput + 'T00:00:00');
-const winEndBase   = new Date(endInput + 'T00:00:00');
-const winEndBaseExclusive = new Date(winEndBase.getTime() + dayMs);
+    const dayMs = 24 * 60 * 60 * 1000;
+    const winStartBase = new Date(startInput + 'T00:00:00');
+    const winEndBase   = new Date(endInput + 'T00:00:00');
+    const winEndBaseExclusive = new Date(winEndBase.getTime() + dayMs);
 
-// 中心日（start〜endの真ん中）
-const center = new Date((winStartBase.getTime() + winEndBaseExclusive.getTime()) / 2);
+    const center = new Date((winStartBase.getTime() + winEndBaseExclusive.getTime()) / 2);
+    const DAYS_ON_SCREEN = 15;
+    const half = Math.floor(DAYS_ON_SCREEN / 2);
 
-// 常に表示したい日数
-const DAYS_ON_SCREEN = 15; // 30でもOK
-const half = Math.floor(DAYS_ON_SCREEN / 2);
+    const windowStart = new Date(center.getTime() - half * dayMs);
+    const windowEnd   = new Date(center.getTime() + (DAYS_ON_SCREEN - half) * dayMs);
 
-const windowStart = new Date(center.getTime() - half * dayMs);
-const windowEnd   = new Date(center.getTime() + (DAYS_ON_SCREEN - half) * dayMs);
+    const options = {
+      stack: true,
+      timeAxis: { scale: 'day', step: 1 },
+      format: {
+        minorLabels: { day: 'MM/DD（ddd）' },
+        majorLabels: { day: 'YYYY年M月' }
+      },
+      zoomable: false,
+      moveable: true,
+      start: windowStart,
+      end: windowEnd
+    };
 
+    if (timeline) timeline.destroy();
 
-const options = {
-  stack: true,
-
-  // 1日単位に固定（時間目盛りを出さない）
-  timeAxis: { scale: 'day', step: 1 },
-  format: {
-    minorLabels: { day: 'MM/DD（ddd）' },
-    majorLabels: { day: 'YYYY年M月' }
-  },
-
-  // ホイールズーム無効（前に入れた設定）
-  zoomable: false,
-  moveable: true,
-
-  // 表示レンジを固定（ここで日幅が決まる）
-  start: windowStart,
-  end: windowEnd
-};
-
-if (timeline) timeline.destroy();
-
-// 軸色マップを毎回作り直し
-axisClassByLabelText = Object.create(null);
-timeline = new vis.Timeline(container, items, groups, options);
+    axisClassByLabelText = Object.create(null);
+    timeline = new vis.Timeline(container, items, groups, options);
 
     timeline.setOptions({
-  locale: 'ja',
-  timeAxis: { scale: 'day', step: 1 },
-  format: {
-    minorLabels: function(x, scale, step) {
-  if (scale !== 'day') return '';
-  return axisDayLabel(x); // axisDayLabel 内で toJsDate する
-},
-    majorLabels: function(x, scale, step) {
-  if (scale !== 'day') return '';
-  const d = toJsDate(x);
-  if (!d) return '';
-  return `${d.getFullYear()}年${d.getMonth()+1}月`;
-}
-  }
-});
+      locale: 'ja',
+      timeAxis: { scale: 'day', step: 1 },
+      format: {
+        minorLabels: function(x, scale, step) {
+          if (scale !== 'day') return '';
+          return axisDayLabel(x);
+        },
+        majorLabels: function(x, scale, step) {
+          if (scale !== 'day') return '';
+          const d = toJsDate(x);
+          if (!d) return '';
+          return `${d.getFullYear()}年${d.getMonth()+1}月`;
+        }
+      }
+    });
 
-// （中略）timeline生成、setOptions が終わったら…
-timeline.on('changed', applyAxisColors);
-setTimeout(applyAxisColors, 0);
+    timeline.on('changed', applyAxisColors);
+    setTimeout(applyAxisColors, 0);
 
     timeline.on('select', props => {
       if (!props.items || props.items.length === 0) return;
@@ -707,8 +787,39 @@ setTimeout(applyAxisColors, 0);
       inpQty.min = '0';
       inpQty.className = 'mini';
       inpQty.value = (ln.qty_total ?? 0);
-      inpQty.oninput = () => { ln.qty_total = Number(inpQty.value || 0); updateLinesTotalAndDoneSelect(); };
+      
+      // 完了数を取得
+      const doneQty = Number(ln.qty_done || 0);
+      
+      // 完了数以上を最小値に設定
+      if (doneQty > 0) {
+        inpQty.min = String(doneQty);
+        inpQty.title = `完了済み${doneQty}本があるため、${doneQty}本未満には設定できません`;
+      }
+      
+      inpQty.oninput = () => { 
+        const newVal = Number(inpQty.value || 0);
+        
+        // 完了数チェック
+        if (doneQty > 0 && newVal < doneQty) {
+          alert(`この内訳は既に${doneQty}本完了しています。${doneQty}本未満には設定できません。`);
+          inpQty.value = doneQty;
+          ln.qty_total = doneQty;
+        } else {
+          ln.qty_total = newVal;
+        }
+        
+        updateLinesTotalAndDoneSelect(); 
+      };
       tdQty.appendChild(inpQty);
+      
+      // 完了数の表示
+      if (doneQty > 0) {
+        const doneLabel = document.createElement('span');
+        doneLabel.className = 'done-badge';
+        doneLabel.textContent = `(完了${doneQty})`;
+        tdQty.appendChild(doneLabel);
+      }
 
       const tdMemo = document.createElement('td');
       const inpMemo = document.createElement('input');
@@ -722,11 +833,21 @@ setTimeout(applyAxisColors, 0);
       btn.type = 'button';
       btn.className = 'btnSmall';
       btn.textContent = '削除';
-      btn.onclick = () => {
-        currentLines.splice(idx, 1);
-        if (currentLines.length === 0) addLine();
-        renderLines();
-      };
+      
+      // 完了数がある場合は削除不可
+      if (doneQty > 0) {
+        btn.disabled = true;
+        btn.title = `完了済み${doneQty}本があるため削除できません`;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+      } else {
+        btn.onclick = () => {
+          currentLines.splice(idx, 1);
+          if (currentLines.length === 0) addLine();
+          renderLines();
+        };
+      }
+      
       tdRm.appendChild(btn);
 
       tr.appendChild(tdSize);
@@ -805,7 +926,6 @@ setTimeout(applyAxisColors, 0);
     document.getElementById('f_vessel').value = currentOrder.vessel || '';
     document.getElementById('f_bl_bk').value = currentOrder.bl_bk || '';
 
-    // infer areas from yards (for edit stability)
     const fromArea = findAreaForYard(currentOrder.from_yard);
     document.getElementById('f_from_area').value = fromArea;
     updateYards(document.getElementById('f_from_area'), document.getElementById('f_from_yard'));
@@ -838,26 +958,20 @@ setTimeout(applyAxisColors, 0);
       ? (masters.customerMap[customerShort] || '')
       : '';
 
-    const voyNorm = normalizeVoy(document.getElementById('f_voy').value);
-    
     const order = {
       order_id: currentOrder.order_id || '',
-      customer: document.getElementById('f_customer').value,
-      order_no: document.getElementById('f_order_no').value,
-      vessel: document.getElementById('f_vessel').value,
-      bl_bk: document.getElementById('f_bl_bk').value,
-
+      customer: customerShort,
+      customerOfficial: customerOfficial,
+      order_no: normalizeAlphanumeric(document.getElementById('f_order_no').value),
+      vessel: normalizeAlphanumeric(document.getElementById('f_vessel').value),
+      bl_bk: normalizeAlphanumeric(document.getElementById('f_bl_bk').value),
+      voy: normalizeAlphanumeric(document.getElementById('f_voy').value),
       from_yard: document.getElementById('f_from_yard').value,
       to_yard: document.getElementById('f_to_yard').value,
-      customer: customerShort,                 // 略称（UI用）
-      customer_official: customerOfficial,     // 正式（kintone用）
-
-      voy: voyNorm,
       inout: document.getElementById('f_inout').value,
       chassis: document.getElementById('f_chassis').value,
       tax: document.getElementById('f_tax').value,
       destination: document.getElementById('f_destination').value,
-
       route: document.getElementById('f_route').value,
       start_date: document.getElementById('f_start_date').value,
       due_date: document.getElementById('f_due_date').value,
@@ -869,6 +983,7 @@ setTimeout(applyAxisColors, 0);
       size: l.size || '',
       container_type: l.container_type || '',
       qty_total: Number(l.qty_total || 0),
+      qty_done: Number(l.qty_done || 0),
       memo: l.memo || ''
     }));
 
@@ -892,6 +1007,23 @@ setTimeout(applyAxisColors, 0);
     updateYards(document.getElementById('f_to_area'), document.getElementById('f_to_yard'));
   });
 
+  // 入力正規化イベント
+  document.getElementById('f_order_no').addEventListener('input', (e) => {
+    e.target.value = normalizeAlphanumeric(e.target.value);
+  });
+
+  document.getElementById('f_vessel').addEventListener('input', (e) => {
+    e.target.value = normalizeAlphanumeric(e.target.value);
+  });
+
+  document.getElementById('f_bl_bk').addEventListener('input', (e) => {
+    e.target.value = normalizeAlphanumeric(e.target.value);
+  });
+
+  document.getElementById('f_voy').addEventListener('input', (e) => {
+    e.target.value = normalizeAlphanumeric(e.target.value);
+  });
+
   document.getElementById('btnAddLine').addEventListener('click', () => {
     addLine();
     renderLines();
@@ -901,29 +1033,40 @@ setTimeout(applyAxisColors, 0);
     try {
       const { order, lines } = readDialogOrderAndLines();
 
+      // 必須チェック
       if (!order.customer) throw new Error('依頼主が未選択です');
+      if (!order.order_no) throw new Error('受注番号が未入力です');
       if (!order.from_yard) throw new Error('搬出ヤードが未選択です');
       if (!order.to_yard) throw new Error('搬入ヤードが未選択です');
       if (!order.due_date) throw new Error('期限日が未入力です');
-      // 日付の前後チェック（開始日が未入力なら「期限日＝開始日」とみなす運用ならここは任意）
-const sd = document.getElementById('f_start_date').value;
-const dd = document.getElementById('f_due_date').value;
+      
+      // 日付チェック
+      const sd = document.getElementById('f_start_date').value;
+      const dd = document.getElementById('f_due_date').value;
+      const startYmd = sd || dd;
+      const dueYmd = dd;
 
-// 開始日が空なら、開始日=期限日として扱う
-const startYmd = sd || dd;
-const dueYmd = dd;
-
-if (startYmd && dueYmd && startYmd > dueYmd) {
-  throw new Error('開始日が期限日より後になっています。開始日／期限日を確認してください。');
-}
-
+      if (startYmd && dueYmd && startYmd > dueYmd) {
+        throw new Error('開始日が期限日より後になっています。開始日／期限日を確認してください。');
+      }
 
       if (!lines.length) throw new Error('内訳がありません');
+      
       for (const ln of lines) {
         if (!ln.size) throw new Error('内訳のサイズが未選択の行があります');
         if (!ln.container_type) throw new Error('内訳の種類が未選択の行があります');
         if (ln.qty_total < 0) throw new Error('内訳の総本数は0以上で入力してください');
+        
+        // 完了数チェック
+        const doneQty = Number(ln.qty_done || 0);
+        if (doneQty > 0 && ln.qty_total < doneQty) {
+          throw new Error(
+            `${ln.size}/${ln.container_type}: 完了済み${doneQty}本があります。` +
+            `${doneQty}本未満には設定できません。`
+          );
+        }
       }
+      
       const total = lines.reduce((a, b) => a + Number(b.qty_total || 0), 0);
       if (total <= 0) throw new Error('内訳の合計本数が0です');
 
@@ -977,47 +1120,48 @@ if (startYmd && dueYmd && startYmd > dueYmd) {
       alert('初期ロードに失敗しました。\n' + (err && (err.stack || err.message) ? (err.stack || err.message) : String(err)));
     }
   })();
-(function initSplitter(){
-  const left = document.getElementById('left');
-  const splitter = document.getElementById('splitter');
+  
+  (function initSplitter(){
+    const left = document.getElementById('left');
+    const splitter = document.getElementById('splitter');
 
-  const MIN = 220;
-  const MAX = 520;
-  const KEY = 'pf_left_width';
+    const MIN = 220;
+    const MAX = 520;
+    const KEY = 'pf_left_width';
 
-  const saved = Number(localStorage.getItem(KEY) || '');
-  if (saved) left.style.width = saved + 'px';
+    const saved = Number(localStorage.getItem(KEY) || '');
+    if (saved) left.style.width = saved + 'px';
 
-  let dragging = false;
-  let startX = 0;
-  let startW = 0;
+    let dragging = false;
+    let startX = 0;
+    let startW = 0;
 
-  splitter.addEventListener('mousedown', (e) => {
-    dragging = true;
-    startX = e.clientX;
-    startW = left.getBoundingClientRect().width;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    e.preventDefault();
-  });
+    splitter.addEventListener('mousedown', (e) => {
+      dragging = true;
+      startX = e.clientX;
+      startW = left.getBoundingClientRect().width;
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      e.preventDefault();
+    });
 
-  window.addEventListener('mousemove', (e) => {
-    if (!dragging) return;
-    const dx = e.clientX - startX;
-    let w = startW + dx;
-    w = Math.max(MIN, Math.min(MAX, w));
-    left.style.width = w + 'px';
-    localStorage.setItem(KEY, String(w));
-    if (timeline) timeline.redraw();
-  });
+    window.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - startX;
+      let w = startW + dx;
+      w = Math.max(MIN, Math.min(MAX, w));
+      left.style.width = w + 'px';
+      localStorage.setItem(KEY, String(w));
+      if (timeline) timeline.redraw();
+    });
 
-  window.addEventListener('mouseup', () => {
-    if (!dragging) return;
-    dragging = false;
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-  });
-})();
+    window.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    });
+  })();
   
 </script>
 </body>
