@@ -130,7 +130,19 @@
   <strong>盤面</strong>
   <button id="btnReload">再読込</button>
   <button id="btnNew">新規案件</button>
+  <label style="margin-left:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+    <input type="checkbox" id="autoReloadToggle" style="cursor:pointer;">
+    <span style="font-size:13px;">自動更新</span>
+    <select id="autoReloadInterval" style="font-size:13px; padding:2px 4px; cursor:pointer;">
+      <option value="30">30秒</option>
+      <option value="60" selected>60秒</option>
+      <option value="120">2分</option>
+      <option value="300">5分</option>
+    </select>
+  </label>
   <div class="spacer"></div>
+  <span class="muted" id="countdown" style="font-size:12px; margin-right:8px;"></span>
+  <span class="muted" id="lastUpdate" style="font-size:12px; margin-right:8px;"></span>
   <span class="muted" id="statusText"></span>
 </header>
 
@@ -337,6 +349,11 @@
 
   const JP_DOW = ['日','月','火','水','木','金','土'];
   let holidaySet = new Set();
+
+  // 自動更新用
+  let autoReloadInterval = null;
+  let countdownInterval = null;
+  let nextReloadTime = null;
 
   function toJsDate(x) {
     if (x instanceof Date) return x;
@@ -716,6 +733,71 @@
     allOrders = await loadOrders();
     refreshLeftFilters(allOrders);
     buildTimeline(allOrders);
+    
+    // 最終更新時刻を表示
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    document.getElementById('lastUpdate').textContent = `最終更新: ${hh}:${mm}:${ss}`;
+  }
+
+  // カウントダウン表示を更新
+  function updateCountdown() {
+    if (!nextReloadTime) {
+      document.getElementById('countdown').textContent = '';
+      return;
+    }
+    
+    const now = Date.now();
+    const remaining = Math.max(0, Math.ceil((nextReloadTime - now) / 1000));
+    
+    if (remaining > 0) {
+      document.getElementById('countdown').textContent = `次回更新: ${remaining}秒後`;
+    } else {
+      document.getElementById('countdown').textContent = '更新中...';
+    }
+  }
+
+  // 自動更新の開始
+  function startAutoReload() {
+    stopAutoReload(); // 既存のタイマーをクリア
+    
+    const seconds = Number(document.getElementById('autoReloadInterval').value);
+    nextReloadTime = Date.now() + (seconds * 1000);
+    
+    // メインの更新タイマー
+    autoReloadInterval = setInterval(async () => {
+      try {
+        console.log('[自動更新] 実行中...');
+        await reload();
+        console.log('[自動更新] 完了');
+        nextReloadTime = Date.now() + (seconds * 1000); // 次回更新時刻をリセット
+      } catch (e) {
+        console.error('[自動更新] エラー:', e);
+      }
+    }, seconds * 1000);
+    
+    // カウントダウン表示タイマー（1秒ごと）
+    countdownInterval = setInterval(updateCountdown, 1000);
+    updateCountdown(); // 即座に表示
+    
+    console.log(`[自動更新] 開始（${seconds}秒間隔）`);
+  }
+
+  // 自動更新の停止
+  function stopAutoReload() {
+    if (autoReloadInterval) {
+      clearInterval(autoReloadInterval);
+      autoReloadInterval = null;
+    }
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+    nextReloadTime = null;
+    document.getElementById('countdown').textContent = '';
+    console.log('[自動更新] 停止');
   }
 
   /************ Dependent yard dropdown ************/
@@ -992,6 +1074,23 @@
   document.getElementById('btnReload').addEventListener('click', () => reload().catch(alert));
   document.getElementById('btnNew').addEventListener('click', () => openDialog(null));
   document.getElementById('btnClose').addEventListener('click', () => document.getElementById('dlg').close());
+
+  // 自動更新トグル
+  document.getElementById('autoReloadToggle').addEventListener('change', (e) => {
+    if (e.target.checked) {
+      startAutoReload();
+    } else {
+      stopAutoReload();
+    }
+  });
+
+  // 更新間隔変更時に自動更新を再起動
+  document.getElementById('autoReloadInterval').addEventListener('change', () => {
+    const toggle = document.getElementById('autoReloadToggle');
+    if (toggle.checked) {
+      startAutoReload(); // 新しい間隔で再起動
+    }
+  });
 
   document.getElementById('statusFilter').addEventListener('change', () => buildTimeline(allOrders));
   document.getElementById('routeFilterSel').addEventListener('change', () => buildTimeline(allOrders));
