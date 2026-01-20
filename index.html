@@ -824,8 +824,11 @@
       setOptions(selSize, sizes, '選択');
       selSize.value = ln.size || '';
       selSize.onchange = () => { 
-        ln.size = selSize.value; 
-        autoFillRate(ln);
+        ln.size = selSize.value;
+        // サイズと種類の両方が選択されていれば料金取得
+        if (ln.size && ln.container_type) {
+          autoFillRate(ln);
+        }
         updateLinesTotalAndDoneSelect(); 
       };
       tdSize.appendChild(selSize);
@@ -836,8 +839,11 @@
       setOptions(selType, ctypes, '選択');
       selType.value = ln.container_type || '';
       selType.onchange = () => { 
-        ln.container_type = selType.value; 
-        autoFillRate(ln);
+        ln.container_type = selType.value;
+        // サイズと種類の両方が選択されていれば料金取得
+        if (ln.size && ln.container_type) {
+          autoFillRate(ln);
+        }
         updateLinesTotalAndDoneSelect(); 
       };
       tdType.appendChild(selType);
