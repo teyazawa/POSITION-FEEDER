@@ -127,7 +127,7 @@
 
 <body>
 <header>
-  <strong>ポジション／フィーダー管理</strong>
+  <strong>盤面</strong>
   <button id="btnReload">再読込</button>
   <button id="btnNew">新規案件</button>
   <div class="spacer"></div>
@@ -301,9 +301,10 @@
         <table>
           <thead>
             <tr>
-              <th style="width:120px;">サイズ</th>
-              <th style="width:180px;">種類</th>
-              <th style="width:100px;">総本数</th>
+              <th style="width:100px;">サイズ</th>
+              <th style="width:160px;">種類</th>
+              <th style="width:80px;">総本数</th>
+              <th style="width:100px;">料金</th>
               <th>メモ</th>
               <th style="width:60px;"></th>
             </tr>
@@ -314,39 +315,10 @@
 
       <div class="muted" id="linesTotalText" style="margin-top:8px;">合計: -</div>
     </div>
-
-    <!-- 当日完了入力 -->
-    <div class="dialog-section">
-      <div class="dialog-section-title">✅ 当日完了入力</div>
-      <div class="muted" style="margin-bottom:12px;">完了は内訳単位で積み上げます（残本数が正確になります）</div>
-      
-      <div class="form-grid-2">
-        <div class="row">
-          <label>作業日</label>
-          <input id="f_work_date" type="date">
-        </div>
-        <div class="row">
-          <label>内訳行</label>
-          <select id="f_done_line"></select>
-        </div>
-      </div>
-      
-      <div class="form-grid-2">
-        <div class="row">
-          <label>当日完了本数</label>
-          <input id="f_qty_done_today" type="number" min="0">
-        </div>
-        <div class="row">
-          <label>進捗（合計）</label>
-          <div class="muted" id="progressText">-</div>
-        </div>
-      </div>
-    </div>
   </div>
 
   <div class="footer">
     <button id="btnSave" type="button">💾 保存</button>
-    <button id="btnAddDone" type="button">✅ 当日完了を追加</button>
   </div>
 </dialog>
 
@@ -544,7 +516,6 @@
 
     document.getElementById('startDate').value = toDate(start);
     document.getElementById('endDate').value   = toDate(end);
-    document.getElementById('f_work_date').value = toDate(today);
   }
 
   async function loadMasters() {
@@ -770,7 +741,11 @@
       selSize.className = 'mini';
       setOptions(selSize, sizes, '選択');
       selSize.value = ln.size || '';
-      selSize.onchange = () => { ln.size = selSize.value; updateLinesTotalAndDoneSelect(); };
+      selSize.onchange = () => { 
+        ln.size = selSize.value; 
+        autoFillRate(ln);
+        updateLinesTotalAndDoneSelect(); 
+      };
       tdSize.appendChild(selSize);
 
       const tdType = document.createElement('td');
@@ -778,7 +753,11 @@
       selType.className = 'mini';
       setOptions(selType, ctypes, '選択');
       selType.value = ln.container_type || '';
-      selType.onchange = () => { ln.container_type = selType.value; updateLinesTotalAndDoneSelect(); };
+      selType.onchange = () => { 
+        ln.container_type = selType.value; 
+        autoFillRate(ln);
+        updateLinesTotalAndDoneSelect(); 
+      };
       tdType.appendChild(selType);
 
       const tdQty = document.createElement('td');
@@ -821,6 +800,16 @@
         tdQty.appendChild(doneLabel);
       }
 
+      // 料金入力フィールド
+      const tdRate = document.createElement('td');
+      const inpRate = document.createElement('input');
+      inpRate.type = 'text';
+      inpRate.className = 'mini';
+      inpRate.value = ln.rate || '';
+      inpRate.placeholder = 'マスタ取得';
+      inpRate.oninput = () => { ln.rate = inpRate.value; };
+      tdRate.appendChild(inpRate);
+
       const tdMemo = document.createElement('td');
       const inpMemo = document.createElement('input');
       inpMemo.className = 'mini';
@@ -853,6 +842,7 @@
       tr.appendChild(tdSize);
       tr.appendChild(tdType);
       tr.appendChild(tdQty);
+      tr.appendChild(tdRate);
       tr.appendChild(tdMemo);
       tr.appendChild(tdRm);
 
@@ -860,6 +850,28 @@
     });
 
     updateLinesTotalAndDoneSelect();
+  }
+
+  // 料金自動取得
+  async function autoFillRate(line) {
+    if (!currentOrder.customer || !currentOrder.destination) return;
+    if (!line.size || !line.container_type) return;
+    
+    try {
+      const rate = await api('getRate', {
+        customer: currentOrder.customer,
+        destination: currentOrder.destination,
+        size: line.size,
+        container_type: line.container_type
+      });
+      
+      if (rate) {
+        line.rate = rate;
+        renderLines();
+      }
+    } catch (e) {
+      console.log('料金取得エラー:', e);
+    }
   }
 
   function addLine(defaults) {
@@ -870,28 +882,14 @@
       qty_total: (defaults && defaults.qty_total != null) ? Number(defaults.qty_total) : 0,
       memo: (defaults && defaults.memo) ? defaults.memo : '',
       qty_done: (defaults && defaults.qty_done != null) ? Number(defaults.qty_done) : 0,
-      qty_remaining: (defaults && defaults.qty_remaining != null) ? Number(defaults.qty_remaining) : 0
+      qty_remaining: (defaults && defaults.qty_remaining != null) ? Number(defaults.qty_remaining) : 0,
+      rate: (defaults && defaults.rate) ? defaults.rate : ''
     });
   }
 
   function updateLinesTotalAndDoneSelect() {
     const total = currentLines.reduce((a, b) => a + Number(b.qty_total || 0), 0);
-    const done = currentLines.reduce((a, b) => a + Number(b.qty_done || 0), 0);
-    const remaining = Math.max(total - done, 0);
-
     document.getElementById('linesTotalText').textContent = `合計: ${total} 本`;
-    document.getElementById('progressText').textContent = `完了 ${done} / ${total}（残 ${remaining}）`;
-
-    const sel = document.getElementById('f_done_line');
-    sel.innerHTML = '';
-    currentLines.forEach(ln => {
-      const key = `${ln.size || '?'} / ${ln.container_type || '?'}`;
-      const opt = document.createElement('option');
-      opt.value = ln.line_id || '';
-      const rem = (ln.qty_remaining != null) ? ln.qty_remaining : Math.max(Number(ln.qty_total||0) - Number(ln.qty_done||0), 0);
-      opt.textContent = `${key}（残 ${rem}）`;
-      sel.appendChild(opt);
-    });
   }
 
   /************ Dialog ************/
@@ -946,7 +944,6 @@
     document.getElementById('f_tax').value = currentOrder.tax || '';
     document.getElementById('f_destination').value = currentOrder.destination || '';
 
-    document.getElementById('f_qty_done_today').value = '';
     renderLines();
 
     document.getElementById('dlg').showModal();
@@ -984,7 +981,8 @@
       container_type: l.container_type || '',
       qty_total: Number(l.qty_total || 0),
       qty_done: Number(l.qty_done || 0),
-      memo: l.memo || ''
+      memo: l.memo || '',
+      rate: l.rate || ''
     }));
 
     return { order, lines };
@@ -1075,35 +1073,6 @@
       document.getElementById('dlg').close();
       await reload();
       alert('保存しました。');
-    } catch (e) {
-      alert(e.message);
-    }
-  });
-
-  document.getElementById('btnAddDone').addEventListener('click', async () => {
-    try {
-      if (!currentOrder || !currentOrder.order_id) {
-        alert('先に案件を保存してください（order_idが必要です）。');
-        return;
-      }
-      const work_date = document.getElementById('f_work_date').value;
-      const qty_done_today = Number(document.getElementById('f_qty_done_today').value || 0);
-      const line_id = document.getElementById('f_done_line').value;
-
-      if (!work_date) throw new Error('作業日が未入力です');
-      if (!line_id) throw new Error('内訳行が未選択です（保存後に選べます）');
-      if (qty_done_today <= 0) throw new Error('当日完了本数は1以上を入力してください');
-
-      await api('addCompletion', {
-        order_id: currentOrder.order_id,
-        order_line_id: line_id,
-        work_date,
-        qty_done_today
-      });
-
-      document.getElementById('dlg').close();
-      await reload();
-      alert('当日完了を追加しました。');
     } catch (e) {
       alert(e.message);
     }
