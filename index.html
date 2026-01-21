@@ -12,8 +12,38 @@
 // ========================================
 let vesselList = [];
 
+async function loadVesselMaster() {
+  try {
+    const data = await api('getMasterData', null);
+    if (data && data.vessels) {
+      vesselList = data.vessels;
+      console.log('本船名リスト読み込み:', vesselList.length, '件');
+    }
+  } catch (err) {
+    console.warn('本船名リスト読み込みエラー:', err);
+  }
+}
+
+function setupVesselAutocomplete() {
+  const input = document.getElementById('f_vessel');
+  if (!input) {
+    console.warn('f_vessel要素が見つかりません');
+    return;
+  }
   
-  input.setAttribute('autocomplete', 'off');
+  const listId = 'vesselAutocomplete';
+  let list = document.getElementById(listId);
+  
+  if (!list) {
+    list = document.createElement('div');
+    list.id = listId;
+    list.style.cssText = 'position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #bae6fd;max-height:200px;overflow-y:auto;z-index:1000;display:none;box-shadow:0 4px 12px rgba(0,0,0,0.1);';
+    
+    const parent = input.parentElement;
+    parent.style.position = 'relative';
+    parent.appendChild(list);
+  }
+  
   input.addEventListener('input', function() {
     const value = this.value.toUpperCase();
     if (!value) { list.style.display='none'; return; }
@@ -37,32 +67,21 @@ let vesselList = [];
   document.addEventListener('click', (e) => {
     if (!input.contains(e.target) && !list.contains(e.target)) list.style.display='none';
   });
-}
-
-// ========================================
-// BL/BK自動変換
-// ========================================
-function setupBlBkFormat() {
-  const input = document.getElementById('blBk');
-  if (!input) return;
   
-  input.addEventListener('blur', function() {
-    let v = this.value;
-    v = v.replace(/[ぁ-んァ-ヶー一-龠々]/g, '');
-    v = v.replace(/[Ａ-Ｚａ-ｚ０-９]/g, s => String.fromCharCode(s.charCodeAt(0)-0xFEE0));
-    this.value = v.toUpperCase();
-  });
+  console.log('本船名オートコンプリート初期化完了');
 }
 
-// 初期化
-});
-
+// 初回読み込み時に実行
+(async () => {
+  await loadVesselMaster();
+  setupVesselAutocomplete();
+})();
 
 </script>
 
   <style>
     body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; }
-    header { padding: 12px 16px; border-bottom: 1px solid #ddd; display: flex; gap: 12px; align-items: center; background: linear-gradient(135deg, #86efac 0%, #4ade80 100%); color: black; }
+    header { padding: 12px 16px; border-bottom: 1px solid #ddd; display: flex; gap: 12px; align-items: center; background: linear-gradient(135deg, #86efac 0%, #4ade80 100%); color: white; }
     header .spacer { flex: 1; }
     #wrap { display: flex; height: calc(100vh - 50px); }
     #left {
@@ -183,16 +202,18 @@ function setupBlBkFormat() {
   <h1 style="font-size: 28px; font-weight: bold; margin: 0; letter-spacing: 1px;">ポジション／フィーダー スケジュール管理</h1>
   <!-- 自動読込があるため削除 -->
   <button id="btnNew">新規案件</button>
-  <label style="margin-left:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">
-    <input type="checkbox" id="autoReloadToggle" style="cursor:pointer;">
-    <span style="font-size:13px;">自動更新</span>
-    <select id="autoReloadInterval" style="font-size:13px; padding:2px 4px; cursor:pointer;">
+  <div style="margin-left:12px; display:flex; flex-direction:column; gap:4px;">
+    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+      <input type="checkbox" id="autoReloadToggle" style="cursor:pointer;">
+      <span style="font-size:13px;">自動更新</span>
+    </label>
+    <select id="autoReloadInterval" style="font-size:13px; padding:2px 4px; cursor:pointer; margin-left:22px;">
       <option value="30">30秒</option>
       <option value="60" selected>60秒</option>
       <option value="120">2分</option>
       <option value="300">5分</option>
     </select>
-  </label>
+  </div>
   <div class="spacer"></div>
   <span class="muted" id="countdown" style="font-size:12px; margin-right:8px;"></span>
   <span class="muted" id="lastUpdate" style="font-size:12px; margin-right:8px;"></span>
@@ -268,15 +289,15 @@ function setupBlBkFormat() {
       <div class="form-grid-3">
         <div class="row">
           <label>本船名</label>
-          <input id="f_vessel" placeholder="本船名を入力（候補から選択可）">
+          <input id="f_vessel" placeholder="本船名を入力" autocomplete="off">
         </div>
         <div class="row">
-          <label>BL/BK（入力後自動変換）</label>
-          <input id="f_bl_bk" placeholder="半角英数字（自動変換）">
+          <label>BL/BK</label>
+          <input id="f_bl_bk" placeholder="BL/BK（入力後自動変換）">
         </div>
         <div class="row">
           <label>VOY No</label>
-          <input id="f_voy" placeholder="半角英数字（自動変換）">
+          <input id="f_voy" placeholder="VOY No">
         </div>
       </div>
     </div>
@@ -286,8 +307,8 @@ function setupBlBkFormat() {
       <div class="dialog-section-title">🚚 輸送情報</div>
       <div class="form-grid-4">
         <div class="row">
-          <label>配送先<span style="color:red;">*</span></label>
-          <select id="f_destination"></select>
+          <label>輸入出</label>
+          <select id="f_inout"></select>
         </div>
         <div class="row">
           <label>シャーシ</label>
@@ -298,8 +319,8 @@ function setupBlBkFormat() {
           <select id="f_tax"></select>
         </div>
         <div class="row">
-          <label>輸入出</label>
-          <select id="f_inout"></select>
+          <label>配送先</label>
+          <select id="f_destination"></select>
         </div>
       </div>
     </div>
@@ -1158,26 +1179,12 @@ function setupBlBkFormat() {
   }
 
   /************ Events ************/
-  // 安全なイベントリスナー登録
-  function safeAddEventListener(id, event, handler) {
-    const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener(event, handler);
-      console.log(`✅ イベント登録: ${id} (${event})`);
-    } else {
-      console.warn(`❌ 要素が見つかりません: ${id}`);
-    }
-  }
-
-  // 再読込ボタンは削除されました（自動更新があるため）
-  safeAddEventListener('btnNew', 'click', () => openDialog(null));
-  safeAddEventListener('btnClose', 'click', () => {
-    console.log('閉じるボタンがクリックされました');
-    document.getElementById('dlg').close();
-  });
+  // 再読込ボタンは削除されました
+  document.getElementById('btnNew').addEventListener('click', () => openDialog(null));
+  document.getElementById('btnClose').addEventListener('click', () => document.getElementById('dlg').close());
 
   // 自動更新トグル
-  safeAddEventListener('autoReloadToggle', 'change', (e) => {
+  document.getElementById('autoReloadToggle').addEventListener('change', (e) => {
     if (e.target.checked) {
       startAutoReload();
     } else {
@@ -1186,49 +1193,47 @@ function setupBlBkFormat() {
   });
 
   // 更新間隔変更時に自動更新を再起動
-  safeAddEventListener('autoReloadInterval', 'change', () => {
+  document.getElementById('autoReloadInterval').addEventListener('change', () => {
     const toggle = document.getElementById('autoReloadToggle');
     if (toggle.checked) {
       startAutoReload(); // 新しい間隔で再起動
     }
   });
 
-  safeAddEventListener('statusFilter', 'change', () => buildTimeline(allOrders));
-  safeAddEventListener('routeFilterSel', 'change', () => buildTimeline(allOrders));
-  safeAddEventListener('customerFilterSel', 'change', () => buildTimeline(allOrders));
-  safeAddEventListener('includeOldDone', 'change', () => reload().catch(alert));
+  document.getElementById('statusFilter').addEventListener('change', () => buildTimeline(allOrders));
+  document.getElementById('routeFilterSel').addEventListener('change', () => buildTimeline(allOrders));
+  document.getElementById('customerFilterSel').addEventListener('change', () => buildTimeline(allOrders));
+  document.getElementById('includeOldDone').addEventListener('change', () => reload().catch(alert));
 
-  safeAddEventListener('f_from_area', 'change', () => {
+  document.getElementById('f_from_area').addEventListener('change', () => {
     updateYards(document.getElementById('f_from_area'), document.getElementById('f_from_yard'));
   });
-  safeAddEventListener('f_to_area', 'change', () => {
+  document.getElementById('f_to_area').addEventListener('change', () => {
     updateYards(document.getElementById('f_to_area'), document.getElementById('f_to_yard'));
   });
 
   // 入力正規化イベント
-  safeAddEventListener('f_order_no', 'input', (e) => {
+  document.getElementById('f_order_no').addEventListener('input', (e) => {
     e.target.value = normalizeAlphanumeric(e.target.value);
   });
 
-  safeAddEventListener('f_vessel', 'input', (e) => {
-    // 本船名オートコンプリートのため入力制御は行わない
+  // f_vessel: 変換なし（オートコンプリート用）
+
+  document.getElementById('f_bl_bk').addEventListener('blur', (e) => {
+    let v = e.target.value;
+    v = v.replace(/[ぁ-んァ-ヶー一-龠々]/g, '');
+    v = v.replace(/[Ａ-Ｚａ-ｚ０-９]/g, s => String.fromCharCode(s.charCodeAt(0)-0xFEE0));
+    e.target.value = v.toUpperCase();
   });
 
-  safeAddEventListener('f_bl_bk', 'input', (e) => {
-    e.target.value = normalizeAlphanumeric(e.target.value);
-  });
+  // f_voy: 変換なし
 
-  safeAddEventListener('f_voy', 'input', (e) => {
-    e.target.value = normalizeAlphanumeric(e.target.value);
-  });
-
-  safeAddEventListener('btnAddLine', 'click', () => {
+  document.getElementById('btnAddLine').addEventListener('click', () => {
     addLine();
     renderLines();
   });
 
-  safeAddEventListener('btnSave', 'click', async () => {
-    console.log('保存ボタンがクリックされました');
+  document.getElementById('btnSave').addEventListener('click', async () => {
     try {
       const { order, lines } = readDialogOrderAndLines();
 
@@ -1335,77 +1340,6 @@ function setupBlBkFormat() {
     });
   })();
   
-
-// ========================================
-// 本船名オートコンプリート
-// ========================================
-let vesselList = [];
-
-function setupVesselAutocomplete() {
-  const input = document.getElementById('f_vessel');
-  if (!input) return;
-  
-  const listId = 'vesselAutocomplete';
-  let list = document.getElementById(listId);
-  
-  if (!list) {
-    list = document.createElement('div');
-    list.id = listId;
-    list.style.cssText = 'position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #bae6fd;max-height:200px;overflow-y:auto;z-index:1000;display:none;box-shadow:0 4px 12px rgba(0,0,0,0.1);';
-    
-    const parent = input.parentElement;
-    parent.style.position = 'relative';
-    parent.appendChild(list);
-  }
-  
-  input.setAttribute('autocomplete', 'off');
-  input.addEventListener('input', function() {
-    const value = this.value.toUpperCase();
-    if (!value) { list.style.display='none'; return; }
-    
-    const filtered = vesselList.filter(v => v.toUpperCase().includes(value));
-    if (!filtered.length) { list.style.display='none'; return; }
-    
-    list.innerHTML = '';
-    filtered.forEach(vessel => {
-      const item = document.createElement('div');
-      item.style.cssText = 'padding:10px;cursor:pointer;';
-      item.textContent = vessel;
-      item.onmouseover = () => item.style.backgroundColor='#e0f2fe';
-      item.onmouseout = () => item.style.backgroundColor='';
-      item.onclick = () => { input.value=vessel; list.style.display='none'; };
-      list.appendChild(item);
-    });
-    list.style.display='block';
-  });
-  
-  document.addEventListener('click', (e) => {
-    if (!input.contains(e.target) && !list.contains(e.target)) list.style.display='none';
-  });
-}
-
-// ========================================
-// BL/BK自動変換
-// ========================================
-function setupBlBkFormat() {
-  const input = document.getElementById('blBk');
-  if (!input) return;
-  
-  input.addEventListener('blur', function() {
-    let v = this.value;
-    v = v.replace(/[ぁ-んァ-ヶー一-龠々]/g, '');
-    v = v.replace(/[Ａ-Ｚａ-ｚ０-９]/g, s => String.fromCharCode(s.charCodeAt(0)-0xFEE0));
-    this.value = v.toUpperCase();
-  });
-}
-
-// 初期化
-window.addEventListener('DOMContentLoaded', function() {
-  setupVesselAutocomplete();
-  setupBlBkFormat();
-});
-
-
 </script>
 </body>
 </html>
