@@ -12,22 +12,6 @@
 // ========================================
 let vesselList = [];
 
-function setupVesselAutocomplete() {
-  const input = document.getElementById('vessel');
-  if (!input) return;
-  
-  const listId = 'vesselAutocomplete';
-  let list = document.getElementById(listId);
-  
-  if (!list) {
-    list = document.createElement('div');
-    list.id = listId;
-    list.style.cssText = 'position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #bae6fd;max-height:200px;overflow-y:auto;z-index:1000;display:none;box-shadow:0 4px 12px rgba(0,0,0,0.1);';
-    
-    const parent = input.parentElement;
-    parent.style.position = 'relative';
-    parent.appendChild(list);
-  }
   
   input.setAttribute('autocomplete', 'off');
   input.addEventListener('input', function() {
@@ -71,9 +55,6 @@ function setupBlBkFormat() {
 }
 
 // 初期化
-window.addEventListener('DOMContentLoaded', function() {
-  setupVesselAutocomplete();
-  setupBlBkFormat();
 });
 
 
@@ -81,7 +62,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
   <style>
     body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; }
-    header { padding: 12px 16px; border-bottom: 1px solid #ddd; display: flex; gap: 12px; align-items: center; }
+    header { padding: 12px 16px; border-bottom: 1px solid #ddd; display: flex; gap: 12px; align-items: center; background: linear-gradient(135deg, #86efac 0%, #4ade80 100%); color: white; }
     header .spacer { flex: 1; }
     #wrap { display: flex; height: calc(100vh - 50px); }
     #left {
@@ -91,6 +72,7 @@ window.addEventListener('DOMContentLoaded', function() {
       padding: 12px;
       overflow: auto;
       border-right: none;
+      background: #e0f2fe;
     }
 
     #splitter{
@@ -286,7 +268,7 @@ window.addEventListener('DOMContentLoaded', function() {
       <div class="form-grid-3">
         <div class="row">
           <label>本船名</label>
-          <input id="f_vessel" placeholder="半角英数字（自動変換）">
+          <input id="f_vessel" placeholder="本船名を入力（候補から選択可）">
         </div>
         <div class="row">
           <label>BL/BK（入力後自動変換）</label>
@@ -307,11 +289,7 @@ window.addEventListener('DOMContentLoaded', function() {
           <label>配送先<span style="color:red;">*</span></label>
           <select id="f_destination"></select>
         </div>
-      </div>
-    </div>
-
-    <!-- ヤード情報 -->
-    <div class="dialog-section">
+        <div class="row">
           <label>シャーシ</label>
           <select id="f_chassis"></select>
         </div>
@@ -323,7 +301,11 @@ window.addEventListener('DOMContentLoaded', function() {
           <label>輸入出</label>
           <select id="f_inout"></select>
         </div>
-        <div class="row">
+      </div>
+    </div>
+
+    <!-- ヤード情報 -->
+    <div class="dialog-section">
       <div class="dialog-section-title">📍 ヤード情報</div>
       <div class="form-grid-2">
         <div>
@@ -1229,7 +1211,7 @@ window.addEventListener('DOMContentLoaded', function() {
   });
 
   safeAddEventListener('f_vessel', 'input', (e) => {
-    e.target.value = normalizeAlphanumeric(e.target.value);
+    // 本船名オートコンプリートのため入力制御は行わない
   });
 
   safeAddEventListener('f_bl_bk', 'input', (e) => {
@@ -1360,7 +1342,7 @@ window.addEventListener('DOMContentLoaded', function() {
 let vesselList = [];
 
 function setupVesselAutocomplete() {
-  const input = document.getElementById('vessel');
+  const input = document.getElementById('f_vessel');
   if (!input) return;
   
   const listId = 'vesselAutocomplete';
