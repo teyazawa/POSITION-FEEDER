@@ -1176,12 +1176,22 @@ window.addEventListener('DOMContentLoaded', function() {
   }
 
   /************ Events ************/
-  document.getElementById('btnReload').addEventListener('click', () => reload().catch(alert));
-  document.getElementById('btnNew').addEventListener('click', () => openDialog(null));
-  document.getElementById('btnClose').addEventListener('click', () => document.getElementById('dlg').close());
+  // 安全なイベントリスナー登録
+  function safeAddEventListener(id, event, handler) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener(event, handler);
+    } else {
+      console.warn(`要素が見つかりません: ${id}`);
+    }
+  }
+
+  // 再読込ボタンは削除されました（自動更新があるため）
+  safeAddEventListener('btnNew', 'click', () => () => openDialog(null));
+  safeAddEventListener('btnClose', 'click', () => () => document.getElementById('dlg').close());
 
   // 自動更新トグル
-  document.getElementById('autoReloadToggle').addEventListener('change', (e) => {
+  safeAddEventListener('autoReloadToggle', 'change', (e) => {
     if (e.target.checked) {
       startAutoReload();
     } else {
@@ -1190,48 +1200,48 @@ window.addEventListener('DOMContentLoaded', function() {
   });
 
   // 更新間隔変更時に自動更新を再起動
-  document.getElementById('autoReloadInterval').addEventListener('change', () => {
+  safeAddEventListener('autoReloadInterval', 'change', () => {
     const toggle = document.getElementById('autoReloadToggle');
     if (toggle.checked) {
       startAutoReload(); // 新しい間隔で再起動
     }
   });
 
-  document.getElementById('statusFilter').addEventListener('change', () => buildTimeline(allOrders));
-  document.getElementById('routeFilterSel').addEventListener('change', () => buildTimeline(allOrders));
-  document.getElementById('customerFilterSel').addEventListener('change', () => buildTimeline(allOrders));
-  document.getElementById('includeOldDone').addEventListener('change', () => reload().catch(alert));
+  safeAddEventListener('statusFilter', 'change', () => () => buildTimeline(allOrders));
+  safeAddEventListener('routeFilterSel', 'change', () => () => buildTimeline(allOrders));
+  safeAddEventListener('customerFilterSel', 'change', () => () => buildTimeline(allOrders));
+  safeAddEventListener('includeOldDone', 'change', () => () => reload().catch(alert));
 
-  document.getElementById('f_from_area').addEventListener('change', () => {
+  safeAddEventListener('f_from_area', 'change', () => {
     updateYards(document.getElementById('f_from_area'), document.getElementById('f_from_yard'));
   });
-  document.getElementById('f_to_area').addEventListener('change', () => {
+  safeAddEventListener('f_to_area', 'change', () => {
     updateYards(document.getElementById('f_to_area'), document.getElementById('f_to_yard'));
   });
 
   // 入力正規化イベント
-  document.getElementById('f_order_no').addEventListener('input', (e) => {
+  safeAddEventListener('f_order_no', 'input', (e) => {
     e.target.value = normalizeAlphanumeric(e.target.value);
   });
 
-  document.getElementById('f_vessel').addEventListener('input', (e) => {
+  safeAddEventListener('f_vessel', 'input', (e) => {
     e.target.value = normalizeAlphanumeric(e.target.value);
   });
 
-  document.getElementById('f_bl_bk').addEventListener('input', (e) => {
+  safeAddEventListener('f_bl_bk', 'input', (e) => {
     e.target.value = normalizeAlphanumeric(e.target.value);
   });
 
-  document.getElementById('f_voy').addEventListener('input', (e) => {
+  safeAddEventListener('f_voy', 'input', (e) => {
     e.target.value = normalizeAlphanumeric(e.target.value);
   });
 
-  document.getElementById('btnAddLine').addEventListener('click', () => {
+  safeAddEventListener('btnAddLine', 'click', () => {
     addLine();
     renderLines();
   });
 
-  document.getElementById('btnSave').addEventListener('click', async () => {
+  safeAddEventListener('btnSave', 'click', async () => {
     try {
       const { order, lines } = readDialogOrderAndLines();
 
