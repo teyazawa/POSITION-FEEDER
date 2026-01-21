@@ -6,7 +6,78 @@
   <title>Position / Feeder Board</title>
 
   <link rel="stylesheet" href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css">
-  <script src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
+  <script src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js">
+// ========================================
+// 本船名オートコンプリート
+// ========================================
+let vesselList = [];
+
+function setupVesselAutocomplete() {
+  const input = document.getElementById('vessel');
+  if (!input) return;
+  
+  const listId = 'vesselAutocomplete';
+  let list = document.getElementById(listId);
+  
+  if (!list) {
+    list = document.createElement('div');
+    list.id = listId;
+    list.style.cssText = 'position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #bae6fd;max-height:200px;overflow-y:auto;z-index:1000;display:none;box-shadow:0 4px 12px rgba(0,0,0,0.1);';
+    
+    const parent = input.parentElement;
+    parent.style.position = 'relative';
+    parent.appendChild(list);
+  }
+  
+  input.setAttribute('autocomplete', 'off');
+  input.addEventListener('input', function() {
+    const value = this.value.toUpperCase();
+    if (!value) { list.style.display='none'; return; }
+    
+    const filtered = vesselList.filter(v => v.toUpperCase().includes(value));
+    if (!filtered.length) { list.style.display='none'; return; }
+    
+    list.innerHTML = '';
+    filtered.forEach(vessel => {
+      const item = document.createElement('div');
+      item.style.cssText = 'padding:10px;cursor:pointer;';
+      item.textContent = vessel;
+      item.onmouseover = () => item.style.backgroundColor='#e0f2fe';
+      item.onmouseout = () => item.style.backgroundColor='';
+      item.onclick = () => { input.value=vessel; list.style.display='none'; };
+      list.appendChild(item);
+    });
+    list.style.display='block';
+  });
+  
+  document.addEventListener('click', (e) => {
+    if (!input.contains(e.target) && !list.contains(e.target)) list.style.display='none';
+  });
+}
+
+// ========================================
+// BL/BK自動変換
+// ========================================
+function setupBlBkFormat() {
+  const input = document.getElementById('blBk');
+  if (!input) return;
+  
+  input.addEventListener('blur', function() {
+    let v = this.value;
+    v = v.replace(/[ぁ-んァ-ヶー一-龠々]/g, '');
+    v = v.replace(/[Ａ-Ｚａ-ｚ０-９]/g, s => String.fromCharCode(s.charCodeAt(0)-0xFEE0));
+    this.value = v.toUpperCase();
+  });
+}
+
+// 初期化
+window.addEventListener('DOMContentLoaded', function() {
+  setupVesselAutocomplete();
+  setupBlBkFormat();
+});
+
+
+</script>
 
   <style>
     body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; }
@@ -127,8 +198,8 @@
 
 <body>
 <header>
-  <strong>ポジション／フィーダー スケジュール管理</strong>
-  <button id="btnReload">再読込</button>
+  <h1 style="font-size: 28px; font-weight: bold; margin: 0; letter-spacing: 1px;">ポジション／フィーダー スケジュール管理</h1>
+  <!-- 自動読込があるため削除 -->
   <button id="btnNew">新規案件</button>
   <label style="margin-left:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">
     <input type="checkbox" id="autoReloadToggle" style="cursor:pointer;">
@@ -218,7 +289,7 @@
           <input id="f_vessel" placeholder="半角英数字（自動変換）">
         </div>
         <div class="row">
-          <label>BL/BK</label>
+          <label>BL/BK（入力後自動変換）</label>
           <input id="f_bl_bk" placeholder="半角英数字（自動変換）">
         </div>
         <div class="row">
@@ -233,10 +304,14 @@
       <div class="dialog-section-title">🚚 輸送情報</div>
       <div class="form-grid-4">
         <div class="row">
-          <label>輸入出</label>
-          <select id="f_inout"></select>
+          <label>配送先<span style="color:red;">*</span></label>
+          <select id="f_destination"></select>
         </div>
-        <div class="row">
+      </div>
+    </div>
+
+    <!-- ヤード情報 -->
+    <div class="dialog-section">
           <label>シャーシ</label>
           <select id="f_chassis"></select>
         </div>
@@ -245,14 +320,10 @@
           <select id="f_tax"></select>
         </div>
         <div class="row">
-          <label>配送先</label>
-          <select id="f_destination"></select>
+          <label>輸入出</label>
+          <select id="f_inout"></select>
         </div>
-      </div>
-    </div>
-
-    <!-- ヤード情報 -->
-    <div class="dialog-section">
+        <div class="row">
       <div class="dialog-section-title">📍 ヤード情報</div>
       <div class="form-grid-2">
         <div>
@@ -1267,6 +1338,77 @@
     });
   })();
   
+
+// ========================================
+// 本船名オートコンプリート
+// ========================================
+let vesselList = [];
+
+function setupVesselAutocomplete() {
+  const input = document.getElementById('vessel');
+  if (!input) return;
+  
+  const listId = 'vesselAutocomplete';
+  let list = document.getElementById(listId);
+  
+  if (!list) {
+    list = document.createElement('div');
+    list.id = listId;
+    list.style.cssText = 'position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #bae6fd;max-height:200px;overflow-y:auto;z-index:1000;display:none;box-shadow:0 4px 12px rgba(0,0,0,0.1);';
+    
+    const parent = input.parentElement;
+    parent.style.position = 'relative';
+    parent.appendChild(list);
+  }
+  
+  input.setAttribute('autocomplete', 'off');
+  input.addEventListener('input', function() {
+    const value = this.value.toUpperCase();
+    if (!value) { list.style.display='none'; return; }
+    
+    const filtered = vesselList.filter(v => v.toUpperCase().includes(value));
+    if (!filtered.length) { list.style.display='none'; return; }
+    
+    list.innerHTML = '';
+    filtered.forEach(vessel => {
+      const item = document.createElement('div');
+      item.style.cssText = 'padding:10px;cursor:pointer;';
+      item.textContent = vessel;
+      item.onmouseover = () => item.style.backgroundColor='#e0f2fe';
+      item.onmouseout = () => item.style.backgroundColor='';
+      item.onclick = () => { input.value=vessel; list.style.display='none'; };
+      list.appendChild(item);
+    });
+    list.style.display='block';
+  });
+  
+  document.addEventListener('click', (e) => {
+    if (!input.contains(e.target) && !list.contains(e.target)) list.style.display='none';
+  });
+}
+
+// ========================================
+// BL/BK自動変換
+// ========================================
+function setupBlBkFormat() {
+  const input = document.getElementById('blBk');
+  if (!input) return;
+  
+  input.addEventListener('blur', function() {
+    let v = this.value;
+    v = v.replace(/[ぁ-んァ-ヶー一-龠々]/g, '');
+    v = v.replace(/[Ａ-Ｚａ-ｚ０-９]/g, s => String.fromCharCode(s.charCodeAt(0)-0xFEE0));
+    this.value = v.toUpperCase();
+  });
+}
+
+// 初期化
+window.addEventListener('DOMContentLoaded', function() {
+  setupVesselAutocomplete();
+  setupBlBkFormat();
+});
+
+
 </script>
 </body>
 </html>
