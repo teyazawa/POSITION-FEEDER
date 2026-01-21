@@ -1181,14 +1181,18 @@ window.addEventListener('DOMContentLoaded', function() {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener(event, handler);
+      console.log(`✅ イベント登録: ${id} (${event})`);
     } else {
-      console.warn(`要素が見つかりません: ${id}`);
+      console.warn(`❌ 要素が見つかりません: ${id}`);
     }
   }
 
   // 再読込ボタンは削除されました（自動更新があるため）
-  safeAddEventListener('btnNew', 'click', () => () => openDialog(null));
-  safeAddEventListener('btnClose', 'click', () => () => document.getElementById('dlg').close());
+  safeAddEventListener('btnNew', 'click', () => openDialog(null));
+  safeAddEventListener('btnClose', 'click', () => {
+    console.log('閉じるボタンがクリックされました');
+    document.getElementById('dlg').close();
+  });
 
   // 自動更新トグル
   safeAddEventListener('autoReloadToggle', 'change', (e) => {
@@ -1207,10 +1211,10 @@ window.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  safeAddEventListener('statusFilter', 'change', () => () => buildTimeline(allOrders));
-  safeAddEventListener('routeFilterSel', 'change', () => () => buildTimeline(allOrders));
-  safeAddEventListener('customerFilterSel', 'change', () => () => buildTimeline(allOrders));
-  safeAddEventListener('includeOldDone', 'change', () => () => reload().catch(alert));
+  safeAddEventListener('statusFilter', 'change', () => buildTimeline(allOrders));
+  safeAddEventListener('routeFilterSel', 'change', () => buildTimeline(allOrders));
+  safeAddEventListener('customerFilterSel', 'change', () => buildTimeline(allOrders));
+  safeAddEventListener('includeOldDone', 'change', () => reload().catch(alert));
 
   safeAddEventListener('f_from_area', 'change', () => {
     updateYards(document.getElementById('f_from_area'), document.getElementById('f_from_yard'));
@@ -1242,6 +1246,7 @@ window.addEventListener('DOMContentLoaded', function() {
   });
 
   safeAddEventListener('btnSave', 'click', async () => {
+    console.log('保存ボタンがクリックされました');
     try {
       const { order, lines } = readDialogOrderAndLines();
 
