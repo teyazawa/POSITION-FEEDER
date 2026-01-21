@@ -942,23 +942,51 @@
 
   // 料金自動取得
   async function autoFillRate(line) {
-    if (!currentOrder.customer || !currentOrder.destination) return;
-    if (!line.size || !line.container_type) return;
+    // 画面から直接取得
+    const customerShort = document.getElementById('f_customer').value;
+    const destination = document.getElementById('f_destination').value;
+    
+    console.log('[料金取得] 開始', {
+      customer: customerShort,
+      destination: destination,
+      size: line.size,
+      container_type: line.container_type
+    });
+    
+    if (!customerShort || !destination) {
+      console.log('[料金取得] スキップ: 得意先または配送先が未選択');
+      return;
+    }
+    if (!line.size || !line.container_type) {
+      console.log('[料金取得] スキップ: サイズまたは種類が未選択');
+      return;
+    }
     
     try {
+      console.log('[料金取得] API呼び出し中...');
       const rate = await api('getRate', {
-        customer: currentOrder.customer,
-        destination: currentOrder.destination,
+        customer: customerShort,
+        destination: destination,
         size: line.size,
         container_type: line.container_type
       });
       
+      console.log('[料金取得] API応答:', rate);
+      
       if (rate) {
         line.rate = rate;
+        console.log('[料金取得] 料金設定完了:', rate);
         renderLines();
+      } else {
+        console.log('[料金取得] 料金マスタに該当なし');
       }
     } catch (e) {
-      console.log('料金取得エラー:', e);
+      console.error('[料金取得] エラー:', e);
+      console.error('[料金取得] エラー詳細:', {
+        message: e.message,
+        stack: e.stack
+      });
+      // エラーでも処理は継続（手動入力可能）
     }
   }
 
@@ -1173,7 +1201,9 @@
       const total = lines.reduce((a, b) => a + Number(b.qty_total || 0), 0);
       if (total <= 0) throw new Error('内訳の合計本数が0です');
 
+      console.log('[保存] リクエスト送信:', { order, lines });
       await api('upsertOrder', { order, lines });
+      console.log('[保存] 完了');
 
       document.getElementById('dlg').close();
       await reload();
